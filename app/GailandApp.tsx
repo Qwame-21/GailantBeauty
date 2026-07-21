@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, CalendarDays, Check, ChevronDown, Clock3, MapPin, Menu, Minus, Package, Pause, Phone, Play, Plus, Search, ShoppingBag, Sparkles, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowRight, CalendarDays, Check, ChevronDown, Clock3, MapPin, Menu, Minus, Package, Phone, Plus, Search, ShoppingBag, Sparkles, X } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, type Product, type Service } from "./constants";
 import { insertRecord } from "./lib/supabase";
 
@@ -57,23 +57,9 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart }: 
 }
 
 function Home({ navigate, book, addToCart }: { navigate: (v: View) => void; book: (s: Service) => void; addToCart: (p: Product) => void }) {
-  const heroSlides = [
-    { category: "Nails", title: "Every detail,", italic: "perfected.", text: "Sculpted, polished and finished with the kind of precision your hands deserve.", image: "/images/hero-nails.jpg", color: "#8a4f43", service: SERVICES[0], note: "Signature Gel", price: money(SERVICES[0].price) },
-    { category: "Hair", title: "Your crown,", italic: "reimagined.", text: "Protective styles and flawless finishes created around your texture, rhythm and life.", image: "/images/hero-hair.jpg", color: "#8f431f", service: SERVICES[1], note: "Knotless Braids", price: money(SERVICES[1].price) },
-    { category: "Makeup", title: "Soft light,", italic: "lasting impact.", text: "Luminous skin and considered artistry for your everyday confidence and biggest moments.", image: "/images/hero-makeup.jpg", color: "#a77c73", service: SERVICES[2], note: "Soft Glam", price: money(SERVICES[2].price) },
-  ];
-  const [heroIndex, setHeroIndex] = useState(0);
-  const [heroPaused, setHeroPaused] = useState(false);
-  useEffect(() => { if (heroPaused) return; const timer = window.setInterval(() => setHeroIndex((current) => (current + 1) % heroSlides.length), 6500); return () => window.clearInterval(timer); }, [heroPaused, heroSlides.length]);
-  const activeHero = heroSlides[heroIndex];
-  const moveHero = (direction: number) => setHeroIndex((current) => (current + direction + heroSlides.length) % heroSlides.length);
   return <>
-    <section className="campaign-hero" style={{ "--campaign": activeHero.color } as React.CSSProperties}>
-      <div className="campaign-image-stack" aria-live="polite">{heroSlides.map((slide, index) => <img key={slide.category} className={index === heroIndex ? "active" : ""} src={slide.image} alt={`${slide.category} artistry by Gailand Beauty`} />)}<div className="campaign-wash" /></div>
-      <div className="campaign-top"><div className="campaign-categories" role="tablist" aria-label="Featured beauty categories">{heroSlides.map((slide, index) => <button role="tab" aria-selected={index === heroIndex} className={index === heroIndex ? "active" : ""} key={slide.category} onClick={() => setHeroIndex(index)}>{slide.category}</button>)}</div><span>Beauty, crowned in Accra</span></div>
-      <div className="campaign-copy" key={activeHero.category}><p className="eyebrow light"><Sparkles size={14} /> {activeHero.category} at Gailand</p><h1>{activeHero.title}<br /><em>{activeHero.italic}</em></h1><p>{activeHero.text}</p><div><button className="pill light large" onClick={() => book(activeHero.service)}>Book {activeHero.category} <ArrowRight size={18} /></button><button className="campaign-gallery" onClick={() => navigate("services")}><Play size={15} fill="currentColor" /> Explore services</button></div></div>
-      <button className="hero-feature-card" onClick={() => book(activeHero.service)} aria-label={`Book ${activeHero.note}`}><span className="feature-thumb"><img src={activeHero.image} alt="" /></span><span><small>FEATURED SERVICE</small><strong>{activeHero.note}</strong><em>From {activeHero.price}</em></span><i><ArrowRight size={18} /></i></button>
-      <div className="campaign-bottom"><div className="campaign-quicklinks"><button onClick={() => setHeroIndex(0)} className={heroIndex === 0 ? "active" : ""}>✦ Nail care</button><button onClick={() => setHeroIndex(1)} className={heroIndex === 1 ? "active" : ""}>✦ Hair studio</button><button onClick={() => setHeroIndex(2)} className={heroIndex === 2 ? "active" : ""}>✦ Makeup</button></div><div className="campaign-controls"><button onClick={() => moveHero(-1)} aria-label="Previous feature"><ArrowLeft size={17} /></button><span><b>0{heroIndex + 1}</b><i>{heroSlides.map((_, index) => <button aria-label={`Go to slide ${index + 1}`} className={index === heroIndex ? "active" : ""} key={index} onClick={() => setHeroIndex(index)} />)}</i><b>0{heroSlides.length}</b></span><button onClick={() => setHeroPaused(!heroPaused)} aria-label={heroPaused ? "Play slideshow" : "Pause slideshow"}>{heroPaused ? <Play size={15} /> : <Pause size={15} />}</button><button onClick={() => moveHero(1)} aria-label="Next feature"><ArrowRight size={17} /></button></div></div>
+    <section className="hero"><div className="hero-copy"><p className="eyebrow"><Sparkles size={14} /> Beauty, crowned in Accra</p><h1>Where beauty<br />wears a <em>crown.</em></h1><p className="hero-text">{BRAND.description}</p><div className="hero-actions"><button className="pill dark large" onClick={() => navigate("services")}>Find your service <ArrowRight size={18} /></button><button className="text-button" onClick={() => navigate("shop")}>Shop the collection</button></div><div className="hero-meta"><span><MapPin size={16} /> Abeka, Accra</span><span><Clock3 size={16} /> Open today until 7pm</span></div></div>
+      <div className="hero-art" aria-label="Editorial beauty studio graphic"><div className="arch"><span className="arch-number">01</span><div className="crown-lines">✦</div><strong>GB</strong><small>POLISHED · PROFESSIONAL · PERSONAL</small></div><div className="orbit orbit-one">NAILS</div><div className="orbit orbit-two">HAIR</div><div className="orbit orbit-three">LASHES</div></div>
     </section>
     <section className="marquee" aria-hidden="true"><span>NAILS</span><i>✦</i><span>HAIR</span><i>✦</i><span>LASHES</span><i>✦</i><span>MAKEUP</span><i>✦</i><span>BEAUTY, CROWNED</span></section>
     <section className="section services-preview"><SectionHead kicker="The Gailand edit" title="Services made for your moment." action="View all services" onAction={() => navigate("services")} /><div className="service-grid">{SERVICES.filter((x) => x.featured).map((service, index) => <ServiceCard key={service.id} service={service} index={index} book={book} />)}</div></section>
