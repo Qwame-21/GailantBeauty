@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, Check, ChevronDown, Clock3, MapPin, Menu, Minus, Package, Phone, Plus, Search, ShoppingBag, Sparkles, UserRound, X } from "lucide-react";
+import { ArrowRight, CalendarDays, Check, ChevronDown, Clock3, MapPin, Menu, Minus, Package, Phone, Plus, Search, ShoppingBag, Sparkles, X } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, type Product, type Service } from "./constants";
 import { insertRecord } from "./lib/supabase";
 
-type View = "home" | "services" | "shop" | "track" | "policies" | "admin";
+type View = "home" | "services" | "shop" | "track" | "policies";
 type CartLine = Product & { quantity: number };
 type Modal = { kind: "booking"; service: Service } | { kind: "consultation"; service: Service } | { kind: "checkout" } | null;
 
@@ -33,9 +33,8 @@ export function GailandApp() {
       {view === "shop" && <ShopPage addToCart={addToCart} />}
       {view === "track" && <TrackPage />}
       {view === "policies" && <PoliciesPage />}
-      {view === "admin" && <AdminPage />}
     </main>
-    {view !== "admin" && <Footer navigate={navigate} />}
+    <Footer navigate={navigate} />
     {cartOpen && <CartDrawer cart={cart} close={() => setCartOpen(false)} update={updateCart} checkout={() => { setCartOpen(false); setModal({ kind: "checkout" }); }} />}
     {modal && <FlowModal modal={modal} cart={cart} close={() => setModal(null)} complete={(message) => { setModal(null); setCart([]); setNotice(message); }} />}
     {notice && <div className="toast"><Check size={17} />{notice}<button aria-label="Close notification" onClick={() => setNotice("")}><X size={16} /></button></div>}
@@ -52,8 +51,8 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart }: 
   return <header className="header"><div className="nav-wrap">
     <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">{menuOpen ? <X /> : <Menu />}</button>
     <CrownMark />
-    <nav className={menuOpen ? "nav-links open" : "nav-links"}>{links.map(([id, label]) => <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)}>{label}</button>)}<button className="mobile-admin" onClick={() => navigate("admin")}>Admin</button></nav>
-    <div className="nav-actions"><button className="quiet-link" onClick={() => navigate("admin")}><UserRound size={17} /> Admin</button><button className="bag-button" onClick={openCart} aria-label={`Cart with ${cartCount} items`}><ShoppingBag size={19} /><span>{cartCount}</span></button><button className="pill dark" onClick={() => navigate("services")}>Book now</button></div>
+    <nav className={menuOpen ? "nav-links open" : "nav-links"}>{links.map(([id, label]) => <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)}>{label}</button>)}</nav>
+    <div className="nav-actions"><button className="bag-button" onClick={openCart} aria-label={`Cart with ${cartCount} items`}><ShoppingBag size={19} /><span>{cartCount}</span></button><button className="pill dark" onClick={() => navigate("services")}>Book now</button></div>
   </div></header>;
 }
 
@@ -119,9 +118,9 @@ function FlowModal({ modal, cart, close, complete }: { modal: NonNullable<Modal>
   return <div className="overlay modal-overlay"><div className="flow-modal"><button className="modal-close" onClick={close} aria-label="Close"><X /></button><div className="modal-intro"><p className="eyebrow">{modal.kind === "checkout" ? "Secure checkout" : modal.kind === "consultation" ? "Let’s talk" : "Reserve your time"}</p><h2>{modal.kind === "checkout" ? "Complete your order." : service?.name}</h2><p>{modal.kind === "consultation" ? "Tell us what you have in mind and our team will reach out with the best next step." : "A few details, then your beauty moment is secured."}</p>{modal.kind !== "checkout" && <div className="modal-summary"><span>{service?.duration}</span><strong>{modal.kind === "consultation" ? "No payment today" : `${money(due)} deposit`}</strong></div>}</div><form onSubmit={submit} className="flow-form"><div className="two-col"><label>FULL NAME<input required value={form.name} onChange={(e) => change("name", e.target.value)} placeholder="Your name" /></label><label>PHONE / WHATSAPP<input required value={form.phone} onChange={(e) => change("phone", e.target.value)} placeholder="055 000 0000" /></label></div><label>EMAIL<input type="email" value={form.email} onChange={(e) => change("email", e.target.value)} placeholder="you@example.com" /></label>{modal.kind === "booking" && <><div className="two-col"><label>PREFERRED DATE<input required type="date" value={form.date} onChange={(e) => change("date", e.target.value)} /></label><label>PREFERRED TIME<select required value={form.time} onChange={(e) => change("time", e.target.value)}><option value="">Select time</option><option>9:00 AM</option><option>11:00 AM</option><option>1:00 PM</option><option>3:00 PM</option><option>5:00 PM</option></select></label></div><label>STYLIST PREFERENCE <span>OPTIONAL</span><input value={form.stylist} onChange={(e) => change("stylist", e.target.value)} placeholder="No preference" /></label><label className="switch-row"><input type="checkbox" checked={homeService} onChange={(e) => setHomeService(e.target.checked)} /><span><strong>Bring Gailand to me</strong><small>Home service from {money(BRAND.homeSurcharge)} within Accra</small></span></label>{homeService && <label>HOME ADDRESS<input required value={form.address} onChange={(e) => change("address", e.target.value)} placeholder="Your location in Accra" /></label>}</>}{modal.kind === "checkout" && <label>DELIVERY ADDRESS<input required value={form.address} onChange={(e) => change("address", e.target.value)} placeholder="Street, area, city" /></label>}<label>NOTES <span>OPTIONAL</span><textarea value={form.notes} onChange={(e) => change("notes", e.target.value)} placeholder="Anything we should know?" /></label><button className="pill dark full" disabled={loading}>{loading ? "Please wait…" : modal.kind === "consultation" ? "Send consultation request" : `Continue to Paystack · ${money(due)}`}</button>{modal.kind !== "consultation" && <small className="secure-note">Secure payment · Paystack · MoMo & cards accepted</small>}</form></div></div>;
 }
 
-function AdminPage() {
-  const [loggedIn, setLoggedIn] = useState(false); const [password, setPassword] = useState(""); const [tab, setTab] = useState("Dashboard");
-  if (!loggedIn) return <section className="admin-login"><div><CrownMark /><p className="eyebrow">Private office</p><h1>Welcome back.</h1><p>Sign in to manage Gailand Beauty.</p><form onSubmit={(e) => { e.preventDefault(); if (password === (process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "gailand2026admin")) setLoggedIn(true); else alert("Incorrect password"); }}><label>ADMIN PASSWORD<input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" /></label><button className="pill dark full">Sign in <ArrowRight size={17} /></button></form><button className="back-site" onClick={() => window.location.reload()}>← Back to website</button></div><aside><span>GB</span><p>THE GAILAND OFFICE</p></aside></section>;
+export function AdminPage() {
+  const [loggedIn, setLoggedIn] = useState(false); const [username, setUsername] = useState(""); const [password, setPassword] = useState(""); const [tab, setTab] = useState("Dashboard");
+  if (!loggedIn) return <section className="admin-login"><div><a className="admin-brand" href="/" aria-label="Gailand Beauty home"><span>Gailand</span><small>BEAUTY</small></a><div className="login-card"><p className="eyebrow">Staff access</p><h1>Welcome back.</h1><p>Enter your credentials to open the Gailand Beauty office.</p><form onSubmit={(e) => { e.preventDefault(); const validUser = username.trim().toLowerCase() === (process.env.NEXT_PUBLIC_ADMIN_USERNAME || "admin").toLowerCase(); const validPassword = password === (process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "gailand2026admin"); if (validUser && validPassword) setLoggedIn(true); else alert("Incorrect username or password"); }}><label>USERNAME<input autoComplete="username" required value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Admin username" /></label><label>PASSWORD<input autoComplete="current-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" /></label><button className="pill dark full">Enter dashboard <ArrowRight size={17} /></button></form><a className="back-site" href="/">← Return to main website</a></div></div><aside><span>GB</span><p>THE GAILAND OFFICE</p></aside></section>;
   const tabs = ["Dashboard", "Services", "Products", "Bookings", "Consultations", "Orders", "Testimonials"];
   return <section className="admin-shell"><aside className="admin-sidebar"><CrownMark /><nav>{tabs.map((x) => <button key={x} onClick={() => setTab(x)} className={tab === x ? "active" : ""}>{x}<span>›</span></button>)}</nav><button className="signout" onClick={() => setLoggedIn(false)}>Sign out</button></aside><div className="admin-main"><header><div><p>GAILAND BEAUTY · ADMIN</p><h1>{tab}</h1></div><button className="pill dark"><Plus size={16} /> Add new</button></header>{tab === "Dashboard" ? <Dashboard /> : <AdminTable title={tab} />}</div></section>;
 }
