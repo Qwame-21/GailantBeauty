@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, ChevronDown, Clock3, MapPin, Menu, Minus, Package, Phone, Plus, Search, ShoppingBag, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Heart, Menu, Minus, Package, Plus, Search, ShoppingBag, X } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
 import { insertRecord } from "./lib/supabase";
 import { GAILAND_DATA_EVENT, loadCatalog } from "./lib/gailand-store";
@@ -41,7 +41,7 @@ export function GailandApp() {
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const targets = document.querySelectorAll<HTMLElement>(
-        ".section-head, .service-card, .product-card, .flash-card, .statement blockquote, .experience > div, .contact-strip > div"
+        ".section-head, .service-card, .product-card, .flash-card, .statement blockquote, .experience > div"
       );
       const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
@@ -192,6 +192,9 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart, op
         <ShoppingBag size={16} />
         <span className="btn-label">BAG ({cartCount})</span>
       </button>
+      <button className="search-icon-btn wishlist-icon-btn" onClick={() => navigate("wishlist")} aria-label="Open wishlist">
+        <Heart size={17} />
+      </button>
       
       {/* Categories Dropdown Menu - Main button navigates directly to services on click */}
       <div className="dropdown-wrapper" onMouseLeave={() => setDropdownOpen(false)}>
@@ -322,7 +325,6 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
       </div>
     </section>
 
-    <section className="contact-strip"><div><MapPin /><span><small>VISIT</small>{BRAND.location}</span></div><div><Phone /><span><small>CALL / WHATSAPP</small>{BRAND.primaryPhone}</span></div><div><Clock3 /><span><small>OPEN</small>{BRAND.hours}</span></div></section>
   </>;
 }
 
@@ -828,5 +830,5 @@ function Footer({ navigate }: { navigate: (v: View) => void }) {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
       </a>
     </div>
-  </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div><small>OPENING HOURS</small><p>Mon–Sat<br />8:00am — 7:00pm</p><p>Sunday<br />12:00pm — 7:00pm</p></div></div><div className="footer-bottom"><span>© 2026 Gailand Beauty</span><button onClick={() => navigate("policies")}>Policies & terms</button><span>Beauty, crowned.</span></div></footer>; 
+  </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div className="footer-hours"><small>OPENING HOURS</small><p><strong>Mon–Sat</strong><br />8:00am — 7:00pm</p><p><strong>Sunday</strong><br />12:00pm — 7:00pm</p></div></div><div className="footer-bottom"><span>© 2026 Gailand Beauty</span><button onClick={() => navigate("policies")}>Policies & terms</button><span>Beauty, crowned.</span></div></footer>;
 }
