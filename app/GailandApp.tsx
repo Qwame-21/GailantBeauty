@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, CalendarDays, Check, ChevronDown, Clock3, MapPin, Menu, Minus, Package, Phone, Plus, Search, ShoppingBag, Sparkles, X } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
 import { insertRecord } from "./lib/supabase";
+import { GAILAND_DATA_EVENT, loadCatalog } from "./lib/gailand-store";
 
 type View = "home" | "services" | "shop" | "wishlist" | "track" | "policies";
 type CartLine = Product & { quantity: number };
@@ -12,6 +13,7 @@ type Modal = { kind: "booking"; service: Service } | { kind: "consultation"; ser
 const money = (n: number) => new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", maximumFractionDigits: 0 }).format(n);
 
 export function GailandApp() {
+  const [, refreshCatalog] = useState(0);
   const [view, setView] = useState<View>("home");
   const [menuOpen, setMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
@@ -21,6 +23,19 @@ export function GailandApp() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    const syncCatalog = () => {
+      const catalog = loadCatalog({ services: SERVICES, products: PRODUCTS, testimonials: TESTIMONIALS });
+      SERVICES.splice(0, SERVICES.length, ...catalog.services);
+      PRODUCTS.splice(0, PRODUCTS.length, ...catalog.products);
+      TESTIMONIALS.splice(0, TESTIMONIALS.length, ...catalog.testimonials.map(({ quote, name, service, rating }) => ({ quote, name, service, rating })));
+      refreshCatalog(v => v + 1);
+    };
+    syncCatalog();
+    window.addEventListener(GAILAND_DATA_EVENT, syncCatalog);
+    return () => window.removeEventListener(GAILAND_DATA_EVENT, syncCatalog);
+  }, []);
 
   const navigate = (next: View, filter?: string) => { 
     setView(next); 

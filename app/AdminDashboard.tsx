@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { BRAND, PRODUCTS, SERVICES, TESTIMONIALS } from "./constants";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
+import { deleteLocalRecords, GAILAND_DATA_EVENT, loadCatalog, loadRecords, patchLocalRecord, saveCatalog } from "./lib/gailand-store";
 
 type View = "Overview" | "Bookings" | "Consultations" | "Orders" | "History" | "Services" | "Products" | "Point of Sale" | "Clients" | "Reviews" | "Insights" | "Staff" | "Settings";
 type Row = { id: string; primary: string; secondary: string; detail: string; status: string; created?: string; raw?: Record<string, unknown> };
@@ -54,7 +55,19 @@ export function GailandAdmin() {
   const [view, setView] = useState<View>("Overview");
   const [mobileNav, setMobileNav] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [rows, setRows] = useState<Record<string, Row[]>>(seeds);
+  const [rows, setRows] = useState<Record<string, Row[]>>(() => {
+    if (typeof window === "undefined") return seeds;
+    const catalog = loadCatalog({ services: SERVICES, products: PRODUCTS, testimonials: TESTIMONIALS });
+    return {
+      ...seeds,
+      Bookings: loadRecords("bookings").map(item => mapRemote("Bookings", item)),
+      Consultations: loadRecords("consultation_requests").map(item => mapRemote("Consultations", item)),
+      Orders: loadRecords("orders").map(item => mapRemote("Orders", item)),
+      Services: catalog.services.map(s => ({ id: s.id, primary: s.name, secondary: s.category, detail: s.consultation ? "Consultation" : `GH₵ ${s.price} · ${s.duration}`, status: "active", raw: s as unknown as Record<string, unknown> })),
+      Products: catalog.products.map(p => ({ id: p.id, primary: p.name, secondary: p.category, detail: `GH₵ ${p.price}`, status: "active", raw: p as unknown as Record<string, unknown> })),
+      Reviews: catalog.testimonials.map((r, i) => ({ id: r.id || `R-${i + 1}`, primary: r.name, secondary: r.service, detail: `${r.rating} stars · “${r.quote.slice(0, 42)}…”`, status: r.published === false ? "hidden" : "published", raw: r as unknown as Record<string, unknown> })),
+    };
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [modal, setModal] = useState<null | { mode: "add" | "edit"; row?: Row }>(null);
@@ -75,6 +88,22 @@ export function GailandAdmin() {
     };
     load();
   }, [authenticated]);
+  useEffect(() => {
+    const syncRecords = (event: Event) => {
+      const table = (event as CustomEvent<{ table?: string }>).detail?.table;
+      const match = Object.entries(tableFor).find(([, value]) => value === table);
+      if (match && table) setRows(current => ({ ...current, [match[0]]: loadRecords(table).map(item => mapRemote(match[0] as View, item)) }));
+    };
+    window.addEventListener(GAILAND_DATA_EVENT, syncRecords);
+    return () => window.removeEventListener(GAILAND_DATA_EVENT, syncRecords);
+  }, []);
+  useEffect(() => {
+    if (!authenticated || typeof window === "undefined") return;
+    const services = (rows.Services || []).map(r => ({ ...(r.raw || {}), id: r.id, name: r.primary, category: r.secondary, price: Number(r.detail.match(/[\d,.]+/)?.[0].replace(",", "") || 0), duration: String(r.raw?.duration || r.detail.split("·")[1]?.trim() || "Consultation"), description: String(r.raw?.description || "Gailand Beauty service"), consultation: r.detail.toLowerCase().includes("consultation") })) as unknown as typeof SERVICES;
+    const products = (rows.Products || []).map(r => ({ ...(r.raw || {}), id: r.id, name: r.primary, category: r.secondary, price: Number(r.detail.match(/[\d,.]+/)?.[0].replace(",", "") || 0), description: String(r.raw?.description || "Gailand Beauty product"), tone: String(r.raw?.tone || "linen") })) as unknown as typeof PRODUCTS;
+    const testimonials = (rows.Reviews || []).map(r => ({ id: r.id, name: r.primary, service: r.secondary, quote: String(r.raw?.quote || r.detail.replace(/^\d stars · “|…”$/g, "")), rating: Number(r.raw?.rating || r.detail.match(/^\d/)?.[0] || 5), published: r.status === "published" }));
+    saveCatalog({ services, products, testimonials });
+  }, [authenticated, rows.Services, rows.Products, rows.Reviews]);
 
   const login = (form: FormData) => {
     const user = String(form.get("username") || "").trim().toLowerCase();
@@ -102,6 +131,7 @@ export function GailandAdmin() {
     setRows(current => ({ ...current, [view]: current[view].map(r => r.id === row.id ? { ...r, status } : r) }));
     const table = tableFor[view]; const remoteId = row.raw?.id;
     if (table && remoteId && supabase) await supabase.from(table).update(view === "Reviews" ? { published: status === "published" } : view === "Services" || view === "Products" ? { active: status === "active" } : { status: status.replaceAll(" ", "_") }).eq("id", remoteId);
+    else if (table && ["Bookings","Consultations","Orders"].includes(view)) patchLocalRecord(table, row.id, { status: status.replaceAll(" ", "_") });
     recordActivity("Status changed", `${row.id} · ${status}`);
     setNotice(`${row.primary} updated to ${status}.`);
   };
@@ -115,6 +145,7 @@ export function GailandAdmin() {
   const removeSelected = () => {
     if (!selected.length || !confirm(`Delete ${selected.length} selected record(s)? This cannot be undone.`)) return;
     setRows(current => ({ ...current, [view]: (current[view] || []).filter(r => !selected.includes(r.id)) }));
+    const table = tableFor[view]; if (table && ["Bookings","Consultations","Orders"].includes(view)) deleteLocalRecords(table, selected);
     recordActivity("Records deleted", `${selected.length} from ${view}`); setSelected([]); setNotice("Selected records deleted.");
   };
   const exportCsv = () => {
@@ -127,10 +158,17 @@ export function GailandAdmin() {
     <aside className={`gb-admin-side ${mobileNav ? "open" : ""}`}><div className="gb-side-brand"><span>{collapsed ? "GB" : "GAILAND"}</span>{!collapsed && <small>BEAUTY · ADMIN</small>}</div><button className="gb-collapse" onClick={() => setCollapsed(v => !v)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>{collapsed ? <ChevronsRight/> : <><ChevronsLeft/><span>Collapse</span></>}</button><nav>{nav.map(item => <button title={item.label} key={item.label} className={view === item.label ? "active" : ""} onClick={() => go(item.label)}><item.icon size={18}/><span>{item.label}</span>{(["Bookings","Consultations","Orders"].includes(item.label)) && <b>{rows[item.label]?.length || 0}</b>}</button>)}</nav><div className="gb-side-foot"><Link href="/"><Store size={16}/><span>View main website</span></Link><button onClick={logout}><LogOut size={16}/><span>Sign out</span></button></div></aside>
     <section className="gb-admin-work"><header className="gb-admin-top"><button className="gb-mobile-menu" onClick={() => setMobileNav(v => !v)} aria-label="Open navigation">{mobileNav ? <X/> : <Menu/>}</button><div><p className="gb-kicker">Gailand operations</p><h1>{view}</h1></div><div className="gb-top-actions"><span className={`gb-connection ${isSupabaseConfigured ? "live" : ""}`}><i/>{isSupabaseConfigured ? "Live data" : "Database offline"}</span><button className="gb-icon-button" onClick={() => go("Bookings")} aria-label="Notifications"><Bell size={18}/><b>{rows.Bookings?.filter(r => r.status === "pending").length || 0}</b></button>{!["Overview","Insights","Settings","History","Point of Sale"].includes(view) && <button className="gb-primary compact" onClick={() => setModal({ mode: "add" })}><Plus size={16}/> Add new</button>}</div></header>
       {loading && <div className="gb-loading">Refreshing Gailand records…</div>}
-      {view === "Overview" ? <Overview rows={rows} go={go}/> : view === "Insights" ? <Insights rows={rows}/> : view === "Settings" ? <SettingsPanel configured={isSupabaseConfigured}/> : view === "Point of Sale" ? <PointOfSale products={rows.Products || []} complete={(name,total) => { recordActivity("Staff order created", `${name} · GH₵ ${total}`); setNotice("Staff order prepared. Connect Paystack to collect payment."); }}/> : <section className="gb-data-card"><div className="gb-table-tools"><label><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Search ${view.toLowerCase()} by name, phone or reference…`}/></label><div><label className="gb-select">Status <ChevronDown size={14}/><select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="all">All</option>{[...new Set(activeRows.map(r => r.status))].map(s => <option key={s}>{s}</option>)}</select></label><button onClick={exportCsv}><Download size={17}/> Export CSV</button></div></div>{selected.length > 0 && <div className="gb-bulk"><strong>{selected.length} selected</strong><button onClick={() => setSelected(filtered.map(r => r.id))}>Select all</button><button className="danger" onClick={removeSelected}><Trash2 size={15}/> Delete selected</button><button onClick={() => setSelected([])}>Clear</button></div>}<div className="gb-table"><div className="gb-tr gb-th"><span>Name / reference</span><span>Service / category</span><span>Details</span><span>Status</span><span>Action</span></div>{filtered.map(row => <div className={`gb-tr ${selected.includes(row.id) ? "selected" : ""}`} key={row.id}><span><input type="checkbox" checked={selected.includes(row.id)} onChange={() => setSelected(s => s.includes(row.id) ? s.filter(id => id !== row.id) : [...s,row.id])}/><span><strong>{row.primary}</strong><small>{row.id}</small></span></span><span>{row.secondary}</span><span>{row.detail}</span><span><select className={`gb-status ${row.status.replaceAll(" ", "-")}`} value={row.status} onChange={e => updateStatus(row, e.target.value)}>{(statuses[view] || [row.status]).map(s => <option key={s}>{s}</option>)}</select></span><span><button className="gb-edit" onClick={() => setModal({ mode: "edit", row })}>Manage</button></span></div>)}{filtered.length === 0 && <div className="gb-empty"><strong>No {view.toLowerCase()} yet.</strong><span>{isSupabaseConfigured ? "New website activity will appear here automatically." : "Connect Supabase when you are ready to begin live testing."}</span></div>}</div></section>}
+      {view === "Overview" ? <Overview rows={rows} go={go}/> : view === "Insights" ? <Insights rows={rows}/> : view === "Settings" ? <SettingsPanel configured={isSupabaseConfigured}/> : view === "Point of Sale" ? <PointOfSale products={rows.Products || []} complete={(name,total) => { recordActivity("Staff order created", `${name} · GH₵ ${total}`); setNotice("Staff order prepared. Connect Paystack to collect payment."); }}/> : ["Bookings","Consultations","Orders"].includes(view) ? <OperationsView view={view} rows={filtered} search={search} setSearch={setSearch} updateStatus={updateStatus} edit={row=>setModal({mode:"edit",row})} exportCsv={exportCsv} connected={isSupabaseConfigured}/> : <section className="gb-data-card"><div className="gb-table-tools"><label><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Search ${view.toLowerCase()} by name, phone or reference…`}/></label><div><label className="gb-select">Status <ChevronDown size={14}/><select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="all">All</option>{[...new Set(activeRows.map(r => r.status))].map(s => <option key={s}>{s}</option>)}</select></label><button onClick={exportCsv}><Download size={17}/> Export CSV</button></div></div>{selected.length > 0 && <div className="gb-bulk"><strong>{selected.length} selected</strong><button onClick={() => setSelected(filtered.map(r => r.id))}>Select all</button><button className="danger" onClick={removeSelected}><Trash2 size={15}/> Delete selected</button><button onClick={() => setSelected([])}>Clear</button></div>}<div className="gb-table"><div className="gb-tr gb-th"><span>Name / reference</span><span>Service / category</span><span>Details</span><span>Status</span><span>Action</span></div>{filtered.map(row => <div className={`gb-tr ${selected.includes(row.id) ? "selected" : ""}`} key={row.id}><span><input type="checkbox" checked={selected.includes(row.id)} onChange={() => setSelected(s => s.includes(row.id) ? s.filter(id => id !== row.id) : [...s,row.id])}/><span><strong>{row.primary}</strong><small>{row.id}</small></span></span><span>{row.secondary}</span><span>{row.detail}</span><span><select className={`gb-status ${row.status.replaceAll(" ", "-")}`} value={row.status} onChange={e => updateStatus(row, e.target.value)}>{(statuses[view] || [row.status]).map(s => <option key={s}>{s}</option>)}</select></span><span><button className="gb-edit" onClick={() => setModal({ mode: "edit", row })}>Manage</button></span></div>)}{filtered.length === 0 && <div className="gb-empty"><strong>No {view.toLowerCase()} yet.</strong><span>{isSupabaseConfigured ? "New website activity will appear here automatically." : "Connect Supabase when you are ready to begin live testing."}</span></div>}</div></section>}
     </section>
     {modal && <EntryModal view={view} row={modal.row} close={() => setModal(null)} save={saveEntry}/>} {notice && <div className="gb-toast"><Check size={16}/>{notice}<button onClick={() => setNotice("")}><X size={15}/></button></div>}
   </main>;
+}
+
+function OperationsView({ view, rows, search, setSearch, updateStatus, edit, exportCsv, connected }: { view: View; rows: Row[]; search: string; setSearch: (v:string)=>void; updateStatus:(row:Row,status:string)=>void; edit:(row:Row)=>void; exportCsv:()=>void; connected:boolean }) {
+  const [expanded,setExpanded]=useState<string | null>(null);
+  const [note,setNote]=useState("");
+  const stages = view === "Orders" ? ["paid","packaged","dispatched","delivered"] : view === "Bookings" ? ["confirmed","in service","completed"] : ["contacted","booked","closed"];
+  return <section className="gb-operations"><div className="gb-operation-summary"><article><span>Total {view.toLowerCase()}</span><strong>{rows.length}</strong></article><article><span>Needs attention</span><strong>{rows.filter(r=>["pending","new","pending payment"].includes(r.status)).length}</strong></article><article><span>Completed</span><strong>{rows.filter(r=>["completed","delivered","closed"].includes(r.status)).length}</strong></article></div><div className="gb-table-tools"><label><Search/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search ID, name, phone or reference…"/></label><button onClick={exportCsv}><Download/> Export CSV</button></div><div className="gb-operation-list">{rows.map(row=>{const open=expanded===row.id;const phone=String(row.raw?.phone||"");return <article key={row.id} className={open?"open":""}><button className="gb-operation-head" onClick={()=>setExpanded(open?null:row.id)}><span><b>{row.id}</b><small>{row.detail}</small></span><span><strong>{row.primary}</strong><small>{row.secondary}</small></span><em className={`gb-status ${row.status.replaceAll(" ","-")}`}>{row.status}</em><ChevronDown/></button>{open&&<div className="gb-operation-body"><div className="gb-client-detail"><div><span>Client</span><strong>{row.primary}</strong></div><div><span>Phone</span><strong>{phone||"Not supplied"}</strong></div><div><span>Email</span><strong>{String(row.raw?.email||"Not supplied")}</strong></div><div><span>Address</span><strong>{String(row.raw?.address||"Studio appointment")}</strong></div><div><span>Payment</span><strong>{String(row.raw?.payment_status||"Not verified")}</strong></div><div><span>Created</span><strong>{row.raw?.created_at?new Date(String(row.raw.created_at)).toLocaleString():"Local record"}</strong></div></div><div className="gb-workflow"><p className="gb-kicker">Workflow</p>{stages.map(stage=><button key={stage} className={row.status===stage?"done":""} onClick={()=>updateStatus(row,stage)}><Check/> {stage}</button>)}</div><div className="gb-order-note"><label>ADMIN NOTE<textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Delivery estimate, stylist note, client request or internal follow-up…"/></label><div><button className="gb-primary" onClick={()=>{edit({...row,detail:note?`${row.detail} · ${note}`:row.detail});setNote("")}}>Save note</button>{phone&&<a href={`https://wa.me/233${phone.replace(/\D/g,"").replace(/^0/,"")}`} target="_blank" rel="noreferrer">Message on WhatsApp ↗</a>}</div></div></div>}</article>})}{!rows.length&&<div className="gb-empty"><strong>No {view.toLowerCase()} received</strong><span>{connected?"New website records will appear here automatically.":"The workflow is ready. Connect Supabase to begin live operations."}</span></div>}</div></section>
 }
 
 function Overview({ rows, go }: { rows: Record<string, Row[]>; go: (v: View) => void }) {
