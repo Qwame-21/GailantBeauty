@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminPage } from "../GailandApp";
+import { GailandAdmin } from "../AdminDashboard";
 
 export const metadata: Metadata = {
   title: "Staff Dashboard | Gailand Beauty",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function AdminRoute() {
-  return <AdminPage />;
+  return <GailandAdmin />;
 }
