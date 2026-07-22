@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, Check, ChevronDown, Clock3, MapPin, Menu, Minus, Package, Phone, Plus, Search, ShoppingBag, Sparkles, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, Check, ChevronDown, Clock3, MapPin, Menu, Minus, Package, Phone, Plus, Search, ShoppingBag, X } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
 import { insertRecord } from "./lib/supabase";
 import { GAILAND_DATA_EVENT, loadCatalog } from "./lib/gailand-store";
@@ -37,6 +38,38 @@ export function GailandApp() {
     return () => window.removeEventListener(GAILAND_DATA_EVENT, syncCatalog);
   }, []);
 
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const targets = document.querySelectorAll<HTMLElement>(
+        ".section-head, .service-card, .product-card, .flash-card, .statement blockquote, .experience > div, .contact-strip > div"
+      );
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: "0px 0px -7% 0px" });
+
+      targets.forEach((target, index) => {
+        target.classList.add("scroll-reveal");
+        target.style.setProperty("--reveal-delay", `${Math.min(index % 4, 3) * 70}ms`);
+        observer.observe(target);
+      });
+
+      document.body.dataset.revealObserverReady = "true";
+      (window as Window & { __gailandRevealObserver?: IntersectionObserver }).__gailandRevealObserver = observer;
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      const revealWindow = window as Window & { __gailandRevealObserver?: IntersectionObserver };
+      revealWindow.__gailandRevealObserver?.disconnect();
+      delete revealWindow.__gailandRevealObserver;
+    };
+  }, [view]);
+
   const navigate = (next: View, filter?: string) => { 
     setView(next); 
     setFilterCategory(filter || null);
@@ -58,15 +91,14 @@ export function GailandApp() {
   const count = cart.reduce((sum, x) => sum + x.quantity, 0);
 
   return <div className="site-shell">
-    <Announcement />
-    <Header view={view} navigate={navigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} cartCount={count} favoritesCount={favorites.length} openCart={() => setCartOpen(true)} openSearch={() => setSearchOpen(true)} />
+    <Header view={view} navigate={navigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} cartCount={count} openCart={() => setCartOpen(true)} openSearch={() => setSearchOpen(true)} />
     <main>
       {view === "home" && <Home navigate={navigate} book={(service) => setModal(service.consultation ? { kind: "consultation", service } : { kind: "booking", service })} addToCart={addToCart} favorites={favorites} toggleFavorite={toggleFavorite} />}
       {view === "services" && <ServicesPage book={(service) => setModal(service.consultation ? { kind: "consultation", service } : { kind: "booking", service })} favorites={favorites} toggleFavorite={toggleFavorite} initialFilter={filterCategory} />}
       {view === "shop" && <ShopPage addToCart={addToCart} favorites={favorites} toggleFavorite={toggleFavorite} initialFilter={filterCategory} />}
       {view === "wishlist" && <WishlistPage favorites={favorites} addToCart={addToCart} toggleFavorite={toggleFavorite} />}
       {view === "track" && <TrackPage />}
-      {view === "policies" && <PoliciesPage navigate={navigate} />}
+      {view === "policies" && <PoliciesPage />}
     </main>
     <Footer navigate={navigate} />
     <FloatingTrioWidget cartCount={count} favoritesCount={favorites.length} openCart={() => setCartOpen(true)} navigate={navigate} />
@@ -96,7 +128,7 @@ function SearchModal({ close, navigate }: { close: () => void; navigate: (v: Vie
             <span>{r.label}</span><small>{r.sub}</small><ArrowRight size={14} />
           </button>)}
         </div>}
-        {q.length > 1 && results.length === 0 && <p className="search-empty">No results for "{q}"</p>}
+        {q.length > 1 && results.length === 0 && <p className="search-empty">No results for &quot;{q}&quot;</p>}
       </div>
     </div>
   );
@@ -123,15 +155,32 @@ function FloatingTrioWidget({ cartCount, favoritesCount, openCart, navigate }: {
   );
 }
 
-function Announcement() { return <div className="announcement"><span>COMPLIMENTARY CONSULTATION FOR EVERY NEW CLIENT</span><span>ABEKA FREE PIPE JUNCTION · ACCRA</span></div>; }
+function CrownMark() { return <button className="wordmark" onClick={() => window.location.reload()} aria-label="Gailand Beauty home"><img src="/gailand-gold-monogram.png" alt="" width="1024" height="1024" /></button>; }
 
-function CrownMark() { return <button className="wordmark" onClick={() => window.location.reload()} aria-label="Gailand Beauty home"><span>GAILAND</span><small>BEAUTY</small></button>; }
-
-function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, favoritesCount, openCart, openSearch }: { view: View; navigate: (v: View, f?: string) => void; menuOpen: boolean; setMenuOpen: (v: boolean) => void; cartCount: number; favoritesCount: number; openCart: () => void; openSearch: () => void }) {
+function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart, openSearch }: { view: View; navigate: (v: View, f?: string) => void; menuOpen: boolean; setMenuOpen: (v: boolean) => void; cartCount: number; openCart: () => void; openSearch: () => void }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const links: [View, string][] = [["services", "SERVICES"], ["shop", "SHOP"], ["track", "TRACK"], ["policies", "POLICIES"]];
 
-  return <header className="header"><div className="nav-wrap">
+  useEffect(() => {
+    const onScroll = () => {
+      const hero = document.querySelector<HTMLElement>(".hero");
+      const heroBottom = hero ? hero.offsetTop + hero.offsetHeight : 128;
+      setScrolled(window.scrollY >= heroBottom - 68);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    onScroll();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  const isHeroNav = view === "home" && !menuOpen;
+  const headerClass = `header${isHeroNav ? (scrolled ? " header--scrolled" : " header--transparent") : ""}`;
+
+  return <header className={headerClass}><div className="nav-wrap">
     <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">{menuOpen ? <X /> : <Menu />}</button>
     <CrownMark />
     <nav className={menuOpen ? "nav-links open" : "nav-links"}>{links.map(([id, label]) => <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)}>{label}</button>)}</nav>
@@ -186,7 +235,18 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, favoritesCou
 
 function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { navigate: (v: View, f?: string) => void; book: (s: Service) => void; addToCart: (p: Product) => void; favorites: string[]; toggleFavorite: (id: string) => void }) {
   const [testimonialIndex, setTestimonialIndex] = useState(0);
-  const itemsPerPage = 3;
+  const [itemsPerPage, setItemsPerPage] = useState(2);
+
+  useEffect(() => {
+    const updateItemsPerPage = () => {
+      setItemsPerPage(window.innerWidth <= 760 ? 1 : 2);
+      setTestimonialIndex(0);
+    };
+    updateItemsPerPage();
+    window.addEventListener("resize", updateItemsPerPage);
+    return () => window.removeEventListener("resize", updateItemsPerPage);
+  }, []);
+
   const maxPages = Math.ceil(TESTIMONIALS.length / itemsPerPage);
   const visibleTestimonials = TESTIMONIALS.slice(testimonialIndex * itemsPerPage, (testimonialIndex + 1) * itemsPerPage);
 
@@ -194,34 +254,36 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
   const nextTestimonials = () => setTestimonialIndex((prev) => (prev < maxPages - 1 ? prev + 1 : 0));
 
   return <>
-    <section className="hero"><div className="hero-copy"><p className="eyebrow"><Sparkles size={14} /> Beauty, crowned in Accra</p><h1>Where beauty<br />wears a <em>crown.</em></h1><p className="hero-text">{BRAND.description}</p><div className="hero-actions">
-      <button className="pill dark large" onClick={() => navigate("services")}>
-        <CrownMarkIcon /> FIND YOUR SERVICE <ArrowRight size={16} />
-      </button>
-      <button className="pill light large" onClick={() => navigate("shop")}>
-        <ShoppingBag size={15} /> SHOP OUR CATALOG <ArrowRight size={16} />
-      </button>
-    </div><div className="hero-meta"><span><MapPin size={16} /> Abeka, Accra</span><span><Clock3 size={16} /> Open today until 7pm</span></div></div>
-      <div className="hero-art" aria-label="Editorial beauty studio graphic">
-        <div className="arch">
-          <span className="arch-number">01</span>
-          <div className="crown-lines">✦</div>
-          <strong>GB</strong>
-          <small>POLISHED · PROFESSIONAL · PERSONAL</small>
-          <div className="arch-service-pills">
-            <button className="arch-pill" onClick={() => navigate("services", "Nails")}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-              NAILS
-            </button>
-            <button className="arch-pill" onClick={() => navigate("services", "Hair")}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
-              HAIR
-            </button>
-            <button className="arch-pill" onClick={() => navigate("services", "Lashes")}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-              LASHES
-            </button>
-          </div>
+    <section className="hero" aria-label="Gailand Beauty hero">
+      {/* Editorial image panel — right 65% */}
+      <div className="hero-image-panel" aria-hidden="true">
+        <picture>
+          <source srcSet="/hero-editorial.jpg" type="image/jpeg" />
+          <img
+            src="/hero-editorial.jpg"
+            alt="Gailand Beauty editorial — model at marble counter with luxury haircare products in a gold-lit salon"
+            className="hero-img"
+            fetchPriority="high"
+            decoding="async"
+            width="1200"
+            height="800"
+          />
+        </picture>
+        {/* Atmospheric cream-champagne fade bleeding from left toward content */}
+        <div className="hero-fade" aria-hidden="true" />
+      </div>
+
+      {/* Content panel — left 35% */}
+      <div className="hero-copy">
+        <h1>Where beauty<br />wears a <em>crown.</em></h1>
+        <p className="hero-text">{BRAND.description}</p>
+        <div className="hero-actions">
+          <button className="hero-btn-primary" onClick={() => navigate("services")} id="hero-cta-services">
+            <CrownMarkIcon /> FIND YOUR SERVICE <ArrowRight size={15} />
+          </button>
+          <button className="hero-btn-secondary" onClick={() => navigate("shop")} id="hero-cta-shop">
+            <ShoppingBag size={14} /> SHOP OUR CATALOG
+          </button>
         </div>
       </div>
     </section>
@@ -231,32 +293,32 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
     <section className="section shop-preview"><SectionHead kicker="The beauty shelf" title="Your crown, cared for." action="Shop all" onAction={() => navigate("shop")} /><div className="product-grid">{PRODUCTS.map((product) => <ProductCard key={product.id} product={product} add={addToCart} isFav={favorites.includes(product.id)} toggleFav={toggleFavorite} />)}</div></section>
     <section className="experience"><div><p className="eyebrow">Beauty comes to you</p><h2>The salon experience,<br /><em>at your door.</em></h2></div><div><p>Professional beauty service, wherever you feel most at ease. Select home service when booking and we’ll take care of the rest.</p><button className="pill light" onClick={() => navigate("services")}>Book home service <ArrowRight size={17} /></button></div></section>
     
-    {/* Client Notes Section with 3-per-line Flash Card Carousel */}
+    {/* Client Notes: two-up desktop, single-card mobile carousel */}
     <section className="section testimonials">
-      <div className="section-head" style={{ alignItems: "center" }}>
+      <div className="section-head testimonial-heading" style={{ alignItems: "center" }}>
         <div>
           <p className="eyebrow">Client notes</p>
           <h2>Loved in Accra.</h2>
         </div>
-        <div className="carousel-controls" style={{ display: "flex", gap: 10 }}>
-          <button className="carousel-nav-btn" onClick={prevTestimonials} aria-label="Previous testimonials">←</button>
-          <button className="carousel-nav-btn" onClick={nextTestimonials} aria-label="Next testimonials">→</button>
-        </div>
       </div>
-      <div className="testimonial-flash-grid">
-        {visibleTestimonials.map((item, idx) => (
-          <article key={item.name + idx} className="flash-card glass-reveal">
-            <div className="flash-card-header">
-              <span className="stars">★★★★★</span>
-              <span className="card-number">0{testimonialIndex * itemsPerPage + idx + 1}</span>
-            </div>
-            <p className="flash-quote">“{item.quote}”</p>
-            <footer>
-              <strong>{item.name}</strong>
-              <span className="service-tag">{item.service}</span>
-            </footer>
-          </article>
-        ))}
+      <div className="testimonial-carousel-shell">
+        <button className="carousel-nav-btn carousel-nav-prev" onClick={prevTestimonials} aria-label="Previous testimonials">←</button>
+        <div className="testimonial-flash-grid">
+          {visibleTestimonials.map((item, idx) => (
+            <article key={item.name + testimonialIndex} className="flash-card glass-reveal">
+              <div className="flash-card-header">
+                <span className="stars">★★★★★</span>
+                <span className="card-number">0{testimonialIndex * itemsPerPage + idx + 1}</span>
+              </div>
+              <p className="flash-quote">“{item.quote}”</p>
+              <footer>
+                <strong>{item.name}</strong>
+                <span className="service-tag">{item.service}</span>
+              </footer>
+            </article>
+          ))}
+        </div>
+        <button className="carousel-nav-btn carousel-nav-next" onClick={nextTestimonials} aria-label="Next testimonials">→</button>
       </div>
     </section>
 
@@ -440,7 +502,7 @@ function TrackPage() {
           <div className="track-result" style={{ marginTop: 24, background: "#fff8f6" }}>
             <div>
               <strong>Reference Not Found</strong>
-              <p>We couldn't find reference "{reference}". Please double check your code or WhatsApp our team for help.</p>
+              <p>We couldn&apos;t find reference &quot;{reference}&quot;. Please double check your code or WhatsApp our team for help.</p>
             </div>
           </div>
         )}
@@ -456,7 +518,7 @@ function TrackPage() {
   </>;
 }
 
-function PoliciesPage({ navigate }: { navigate: (v: View) => void }) { 
+function PoliciesPage() { 
   const [reviews, setReviews] = useState(TESTIMONIALS);
   const [newReview, setNewReview] = useState({ name: "", service: "", quote: "" });
   const [submitted, setSubmitted] = useState(false);
@@ -654,7 +716,7 @@ export function AdminPage() {
             </label>
             <button className="pill dark large full">Enter dashboard <ArrowRight size={17} /></button>
           </form>
-          <a className="back-site" href="/">← Return to main website</a>
+          <Link className="back-site" href="/">← Return to main website</Link>
         </div>
       </div>
       <aside><span>GB</span><p>THE GAILAND OFFICE</p></aside>
