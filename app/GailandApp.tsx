@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, ChevronDown, Heart, Menu, Minus, Package, Plus, Search, ShoppingBag, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Clock3, MapPin, Menu, Minus, Package, Phone, Plus, Search, ShoppingBag, Sparkles, X } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
 import { insertRecord } from "./lib/supabase";
 import { GAILAND_DATA_EVENT, loadCatalog } from "./lib/gailand-store";
@@ -38,38 +38,6 @@ export function GailandApp() {
     return () => window.removeEventListener(GAILAND_DATA_EVENT, syncCatalog);
   }, []);
 
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      const targets = document.querySelectorAll<HTMLElement>(
-        ".section-head, .service-card, .product-card, .flash-card, .statement blockquote, .experience > div"
-      );
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.12, rootMargin: "0px 0px -7% 0px" });
-
-      targets.forEach((target, index) => {
-        target.classList.add("scroll-reveal");
-        target.style.setProperty("--reveal-delay", `${Math.min(index % 4, 3) * 70}ms`);
-        observer.observe(target);
-      });
-
-      document.body.dataset.revealObserverReady = "true";
-      (window as Window & { __gailandRevealObserver?: IntersectionObserver }).__gailandRevealObserver = observer;
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      const revealWindow = window as Window & { __gailandRevealObserver?: IntersectionObserver };
-      revealWindow.__gailandRevealObserver?.disconnect();
-      delete revealWindow.__gailandRevealObserver;
-    };
-  }, [view]);
-
   const navigate = (next: View, filter?: string) => { 
     setView(next); 
     setFilterCategory(filter || null);
@@ -91,6 +59,7 @@ export function GailandApp() {
   const count = cart.reduce((sum, x) => sum + x.quantity, 0);
 
   return <div className="site-shell">
+    <Announcement />
     <Header view={view} navigate={navigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} cartCount={count} openCart={() => setCartOpen(true)} openSearch={() => setSearchOpen(true)} />
     <main>
       {view === "home" && <Home navigate={navigate} book={(service) => setModal(service.consultation ? { kind: "consultation", service } : { kind: "booking", service })} addToCart={addToCart} favorites={favorites} toggleFavorite={toggleFavorite} />}
@@ -155,7 +124,9 @@ function FloatingTrioWidget({ cartCount, favoritesCount, openCart, navigate }: {
   );
 }
 
-function CrownMark() { return <button className="wordmark" onClick={() => window.location.reload()} aria-label="Gailand Beauty home"><img src="/gailand-gold-monogram.png" alt="" width="1024" height="1024" /></button>; }
+function Announcement() { return <div className="announcement"><span>COMPLIMENTARY CONSULTATION FOR EVERY NEW CLIENT</span><span>ABEKA FREE PIPE JUNCTION · ACCRA</span></div>; }
+
+function CrownMark() { return <button className="wordmark" onClick={() => window.location.reload()} aria-label="Gailand Beauty home"><span>GAILAND</span><small>BEAUTY</small></button>; }
 
 function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart, openSearch }: { view: View; navigate: (v: View, f?: string) => void; menuOpen: boolean; setMenuOpen: (v: boolean) => void; cartCount: number; openCart: () => void; openSearch: () => void }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -163,18 +134,10 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart, op
   const links: [View, string][] = [["services", "SERVICES"], ["shop", "SHOP"], ["track", "TRACK"], ["policies", "POLICIES"]];
 
   useEffect(() => {
-    const onScroll = () => {
-      const hero = document.querySelector<HTMLElement>(".hero");
-      const heroBottom = hero ? hero.offsetTop + hero.offsetHeight : 128;
-      setScrolled(window.scrollY >= heroBottom - 68);
-    };
+    const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
     onScroll();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const isHeroNav = view === "home" && !menuOpen;
@@ -191,9 +154,6 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart, op
       <button className="nav-action-btn bag-btn" onClick={openCart} aria-label={`Bag with ${cartCount} items`}>
         <ShoppingBag size={16} />
         <span className="btn-label">BAG ({cartCount})</span>
-      </button>
-      <button className="search-icon-btn wishlist-icon-btn" onClick={() => navigate("wishlist")} aria-label="Open wishlist">
-        <Heart size={17} />
       </button>
       
       {/* Categories Dropdown Menu - Main button navigates directly to services on click */}
@@ -238,18 +198,7 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart, op
 
 function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { navigate: (v: View, f?: string) => void; book: (s: Service) => void; addToCart: (p: Product) => void; favorites: string[]; toggleFavorite: (id: string) => void }) {
   const [testimonialIndex, setTestimonialIndex] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(2);
-
-  useEffect(() => {
-    const updateItemsPerPage = () => {
-      setItemsPerPage(window.innerWidth <= 760 ? 1 : 2);
-      setTestimonialIndex(0);
-    };
-    updateItemsPerPage();
-    window.addEventListener("resize", updateItemsPerPage);
-    return () => window.removeEventListener("resize", updateItemsPerPage);
-  }, []);
-
+  const itemsPerPage = 3;
   const maxPages = Math.ceil(TESTIMONIALS.length / itemsPerPage);
   const visibleTestimonials = TESTIMONIALS.slice(testimonialIndex * itemsPerPage, (testimonialIndex + 1) * itemsPerPage);
 
@@ -278,6 +227,7 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
 
       {/* Content panel — left 35% */}
       <div className="hero-copy">
+        <p className="eyebrow hero-eyebrow"><Sparkles size={13} /> Beauty, crowned in Accra</p>
         <h1>Where beauty<br />wears a <em>crown.</em></h1>
         <p className="hero-text">{BRAND.description}</p>
         <div className="hero-actions">
@@ -288,6 +238,10 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
             <ShoppingBag size={14} /> SHOP OUR CATALOG
           </button>
         </div>
+        <div className="hero-meta">
+          <span><MapPin size={15} /> Abeka, Accra</span>
+          <span><Clock3 size={15} /> Open today until 7pm</span>
+        </div>
       </div>
     </section>
     <section className="marquee" aria-hidden="true"><span>NAILS</span><i>✦</i><span>HAIR</span><i>✦</i><span>LASHES</span><i>✦</i><span>MAKEUP</span><i>✦</i><span>BEAUTY, CROWNED</span></section>
@@ -296,35 +250,36 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
     <section className="section shop-preview"><SectionHead kicker="The beauty shelf" title="Your crown, cared for." action="Shop all" onAction={() => navigate("shop")} /><div className="product-grid">{PRODUCTS.map((product) => <ProductCard key={product.id} product={product} add={addToCart} isFav={favorites.includes(product.id)} toggleFav={toggleFavorite} />)}</div></section>
     <section className="experience"><div><p className="eyebrow">Beauty comes to you</p><h2>The salon experience,<br /><em>at your door.</em></h2></div><div><p>Professional beauty service, wherever you feel most at ease. Select home service when booking and we’ll take care of the rest.</p><button className="pill light" onClick={() => navigate("services")}>Book home service <ArrowRight size={17} /></button></div></section>
     
-    {/* Client Notes: two-up desktop, single-card mobile carousel */}
+    {/* Client Notes Section with 3-per-line Flash Card Carousel */}
     <section className="section testimonials">
-      <div className="section-head testimonial-heading" style={{ alignItems: "center" }}>
+      <div className="section-head" style={{ alignItems: "center" }}>
         <div>
           <p className="eyebrow">Client notes</p>
           <h2>Loved in Accra.</h2>
         </div>
-      </div>
-      <div className="testimonial-carousel-shell">
-        <button className="carousel-nav-btn carousel-nav-prev" onClick={prevTestimonials} aria-label="Previous testimonials">←</button>
-        <div className="testimonial-flash-grid">
-          {visibleTestimonials.map((item, idx) => (
-            <article key={item.name + testimonialIndex} className="flash-card glass-reveal">
-              <div className="flash-card-header">
-                <span className="stars">★★★★★</span>
-                <span className="card-number">0{testimonialIndex * itemsPerPage + idx + 1}</span>
-              </div>
-              <p className="flash-quote">“{item.quote}”</p>
-              <footer>
-                <strong>{item.name}</strong>
-                <span className="service-tag">{item.service}</span>
-              </footer>
-            </article>
-          ))}
+        <div className="carousel-controls" style={{ display: "flex", gap: 10 }}>
+          <button className="carousel-nav-btn" onClick={prevTestimonials} aria-label="Previous testimonials">←</button>
+          <button className="carousel-nav-btn" onClick={nextTestimonials} aria-label="Next testimonials">→</button>
         </div>
-        <button className="carousel-nav-btn carousel-nav-next" onClick={nextTestimonials} aria-label="Next testimonials">→</button>
+      </div>
+      <div className="testimonial-flash-grid">
+        {visibleTestimonials.map((item, idx) => (
+          <article key={item.name + idx} className="flash-card glass-reveal">
+            <div className="flash-card-header">
+              <span className="stars">★★★★★</span>
+              <span className="card-number">0{testimonialIndex * itemsPerPage + idx + 1}</span>
+            </div>
+            <p className="flash-quote">“{item.quote}”</p>
+            <footer>
+              <strong>{item.name}</strong>
+              <span className="service-tag">{item.service}</span>
+            </footer>
+          </article>
+        ))}
       </div>
     </section>
 
+    <section className="contact-strip"><div><MapPin /><span><small>VISIT</small>{BRAND.location}</span></div><div><Phone /><span><small>CALL / WHATSAPP</small>{BRAND.primaryPhone}</span></div><div><Clock3 /><span><small>OPEN</small>{BRAND.hours}</span></div></section>
   </>;
 }
 
@@ -830,5 +785,5 @@ function Footer({ navigate }: { navigate: (v: View) => void }) {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
       </a>
     </div>
-  </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div className="footer-hours"><small>OPENING HOURS</small><p><strong>Mon–Sat</strong><br />8:00am — 7:00pm</p><p><strong>Sunday</strong><br />12:00pm — 7:00pm</p></div></div><div className="footer-bottom"><span>© 2026 Gailand Beauty</span><button onClick={() => navigate("policies")}>Policies & terms</button><span>Beauty, crowned.</span></div></footer>;
+  </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div><small>OPENING HOURS</small><p>Mon–Sat<br />8:00am — 7:00pm</p><p>Sunday<br />12:00pm — 7:00pm</p></div></div><div className="footer-bottom"><span>© 2026 Gailand Beauty</span><button onClick={() => navigate("policies")}>Policies & terms</button><span>Beauty, crowned.</span></div></footer>; 
 }
