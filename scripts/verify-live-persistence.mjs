@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
-function loadEnv(path = ".env.local") {
+function loadEnv(path) {
+  if (!fs.existsSync(path)) return {};
   const values = {};
   for (const line of fs.readFileSync(path, "utf8").split(/\r?\n/)) {
     if (!line || line.startsWith("#") || !line.includes("=")) continue;
@@ -11,7 +12,11 @@ function loadEnv(path = ".env.local") {
   return values;
 }
 
-const env = { ...loadEnv(), ...process.env };
+const env = {
+  ...loadEnv(".env.local"),
+  ...loadEnv(".env.persistence.local"),
+  ...process.env,
+};
 const url = env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const password = env.SUPABASE_ADMIN_TEST_PASSWORD;
