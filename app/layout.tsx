@@ -6,6 +6,7 @@ const display = Cormorant_Garamond({ variable: "--font-display", subsets: ["lati
 const sans = DM_Sans({ variable: "--font-sans", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://gailant-beauty.vercel.app"),
   title: "Gailand Beauty | Beauty, Crowned in Accra",
   description: "Abeka's premium studio for nails, hair, lashes and makeup — in-studio or at your door.",
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
