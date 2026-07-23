@@ -45,9 +45,39 @@ export async function upsertRecord(table: string, payload: Record<string, unknow
 
 export async function signInAdmin(email: string, password: string) {
   if (!supabase) return { error: null, local: true };
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  return { error: error ? message(error) : null, local: false };
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error || !data.user) return { error: error ? message(error) : "Unable to authenticate.", local: false };
+  const { data: admin, error: adminError } = await supabase
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id", data.user.id)
+    .eq("active", true)
+    .maybeSingle();
+  if (adminError || !admin) {
+    await supabase.auth.signOut();
+    return { error: adminError ? message(adminError) : "This account does not have admin access.", local: false };
+  }
+  return { error: null, local: false };
 }
 
 export async function signOutAdmin() { if (supabase) await supabase.auth.signOut(); }
-export async function hasAdminSession() { if (!supabase) return false; const { data } = await supabase.auth.getSession(); return Boolean(data.session); }
+export async function hasAdminSession() {
+  if (!supabase) return false;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return false;
+  const { data } = await supabase
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id", session.user.id)
+    .eq("active", true)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+export async function reauthenticateAdmin(password: string) {
+  if (!supabase) return { error: "Supabase authentication is required." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) return { error: "Your admin session has expired. Sign in again." };
+  const result = await signInAdmin(user.email, password);
+  return { error: result.error };
+}

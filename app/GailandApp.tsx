@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Check, ChevronDown, Heart, Menu, Minus, Package, Plus, Search, ShoppingBag, X } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
-import { insertRecord } from "./lib/supabase";
+import { insertRecord, signInAdmin } from "./lib/supabase";
 import { GAILAND_DATA_EVENT, loadCatalog } from "./lib/gailand-store";
 
 type View = "home" | "services" | "shop" | "wishlist" | "track" | "policies";
@@ -155,7 +156,7 @@ function FloatingTrioWidget({ cartCount, favoritesCount, openCart, navigate }: {
   );
 }
 
-function CrownMark() { return <button className="wordmark" onClick={() => window.location.reload()} aria-label="Gailand Beauty home"><img src="/gailand-gold-monogram.png" alt="" width="1024" height="1024" /></button>; }
+function CrownMark() { return <button className="wordmark" onClick={() => window.location.reload()} aria-label="Gailand Beauty home"><Image src="/gailand-gold-monogram.png" alt="" width={1024} height={1024} priority /></button>; }
 
 function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart, openSearch }: { view: View; navigate: (v: View, f?: string) => void; menuOpen: boolean; setMenuOpen: (v: boolean) => void; cartCount: number; openCart: () => void; openSearch: () => void }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -620,7 +621,7 @@ function FlowModal({ modal, cart, close, complete }: { modal: NonNullable<Modal>
     const payload = modal.kind === "checkout" ? { name: form.name, phone: form.phone, email: form.email, address: form.address, items: cart, total_amount: due, status: "pending_payment" } : modal.kind === "consultation" ? { name: form.name, phone: form.phone, email: form.email, service_id: service?.id, service_name: service?.name, notes: form.notes, status: "new" } : { name: form.name, phone: form.phone, email: form.email, service_id: service?.id, service_name: service?.name, appointment_date: form.date, appointment_time: form.time, stylist_preference: form.stylist, home_service: homeService, address: form.address, notes: form.notes, total_amount: total, deposit_amount: due, status: "pending_payment" }; 
     const { error } = await insertRecord(table, payload); 
     setLoading(false); 
-    if (error) return alert(error.message); 
+    if (error) return alert(error);
     complete(modal.kind === "consultation" ? "Consultation request received. We’ll call you shortly." : `Thank you, ${form.name.split(" ")[0] || "queen"}. Your request is confirmed.`); 
   };
 
@@ -691,6 +692,7 @@ export function AdminPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const [tab, setTab] = useState("Dashboard");
 
   if (!loggedIn) return (
@@ -703,7 +705,7 @@ export function AdminPage() {
           <p className="eyebrow">Staff access</p>
           <h1>Welcome back.</h1>
           <p>Enter your credentials to open the Gailand Beauty office.</p>
-          <form onSubmit={(e) => { e.preventDefault(); const validUser = username.trim().toLowerCase() === (process.env.NEXT_PUBLIC_ADMIN_USERNAME || "admin").toLowerCase(); const validPassword = password === (process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "gailand2026admin"); if (validUser && validPassword) setLoggedIn(true); else alert("Incorrect username or password"); }}>
+          <form onSubmit={async (e) => { e.preventDefault(); const result = await signInAdmin(username.trim().toLowerCase(), password); if (!result.error && !result.local) { setLoggedIn(true); setLoginError(""); } else setLoginError(result.error || "Supabase authentication is not configured."); }}>
             <label>USERNAME<input autoComplete="username" required value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Admin username" /></label>
             <label>PASSWORD
               <div className="password-wrap">
@@ -716,6 +718,7 @@ export function AdminPage() {
                 </button>
               </div>
             </label>
+            {loginError && <p className="form-error">{loginError}</p>}
             <button className="pill dark large full">Enter dashboard <ArrowRight size={17} /></button>
           </form>
           <Link className="back-site" href="/">← Return to main website</Link>
