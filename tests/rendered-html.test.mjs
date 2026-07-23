@@ -8,12 +8,12 @@ async function render(pathname = "/") {
   return worker.fetch(new Request(`http://localhost${pathname}`, { headers: { accept: "text/html" } }), { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
 }
 
-test("server-renders the Gailand storefront", async () => {
+test("server-renders the Gailant storefront", async () => {
   const response = await render("/");
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /Gailand Beauty/i);
+  assert.match(html, /Gailant Beauty/i);
   assert.doesNotMatch(html, /Your site is taking shape|Building your site/i);
 });
 
@@ -21,7 +21,7 @@ test("server-renders the protected admin route", async () => {
   const response = await render("/admin");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Staff Dashboard|Gailand Beauty/i);
+  assert.match(html, /Staff Dashboard|Gailant Beauty/i);
   assert.match(html, /Private staff office|Welcome/i);
 });
 

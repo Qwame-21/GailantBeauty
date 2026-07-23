@@ -5,16 +5,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Check, ChevronDown, Heart, Menu, Minus, Package, Plus, Search, ShoppingBag, X } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
-import { insertRecord, signInAdmin } from "./lib/supabase";
+import { insertRecord, signInAdmin, trackReference } from "./lib/supabase";
 import { GAILAND_DATA_EVENT, loadCatalog } from "./lib/gailand-store";
 
 type View = "home" | "services" | "shop" | "wishlist" | "track" | "policies";
 type CartLine = Product & { quantity: number };
-type Modal = { kind: "booking"; service: Service } | { kind: "consultation"; service: Service } | { kind: "checkout" } | null;
+type Modal = { kind: "booking"; service: Service } | { kind: "consultation"; service: Service } | null;
 
 const money = (n: number) => new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", maximumFractionDigits: 0 }).format(n);
 
-export function GailandApp() {
+export function GailantApp() {
   const [, refreshCatalog] = useState(0);
   const [view, setView] = useState<View>("home");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -25,6 +25,7 @@ export function GailandApp() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const overlayOpen = cartOpen || searchOpen || modal !== null;
 
   useEffect(() => {
     const syncCatalog = () => {
@@ -71,11 +72,35 @@ export function GailandApp() {
     };
   }, [view]);
 
+  useEffect(() => {
+    if (!overlayOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeTopLayer = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setSearchOpen(false);
+      setCartOpen(false);
+      setModal(null);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeTopLayer);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeTopLayer);
+    };
+  }, [overlayOpen]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(""), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
+
   const navigate = (next: View, filter?: string) => { 
     setView(next); 
     setFilterCategory(filter || null);
     setMenuOpen(false); 
-    window.scrollTo({ top: 0, behavior: "smooth" }); 
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
   const addToCart = (product: Product) => { 
@@ -83,53 +108,61 @@ export function GailandApp() {
     setNotice(`ADDED ${product.name.toUpperCase()} TO BAG`);
   };
 
-  const toggleFavorite = (id: string) => { 
-    setFavorites((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]); 
-    setNotice(favorites.includes(id) ? "REMOVED FROM WISHLIST" : "ADDED TO WISHLIST"); 
+  const toggleFavorite = (id: string) => {
+    setFavorites((prev) => {
+      const removing = prev.includes(id);
+      setNotice(removing ? "REMOVED FROM WISHLIST" : "ADDED TO WISHLIST");
+      return removing ? prev.filter((x) => x !== id) : [...prev, id];
+    });
   };
 
   const updateCart = (id: string, delta: number) => setCart((current) => current.map((x) => x.id === id ? { ...x, quantity: x.quantity + delta } : x).filter((x) => x.quantity > 0));
   const count = cart.reduce((sum, x) => sum + x.quantity, 0);
 
   return <div className="site-shell">
-    <Header view={view} navigate={navigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} cartCount={count} openCart={() => setCartOpen(true)} openSearch={() => setSearchOpen(true)} />
+    <Header view={view} navigate={navigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} cartCount={count} favoritesCount={favorites.length} openCart={() => setCartOpen(true)} openSearch={() => setSearchOpen(true)} />
     <main>
       {view === "home" && <Home navigate={navigate} book={(service) => setModal(service.consultation ? { kind: "consultation", service } : { kind: "booking", service })} addToCart={addToCart} favorites={favorites} toggleFavorite={toggleFavorite} />}
       {view === "services" && <ServicesPage book={(service) => setModal(service.consultation ? { kind: "consultation", service } : { kind: "booking", service })} favorites={favorites} toggleFavorite={toggleFavorite} initialFilter={filterCategory} />}
       {view === "shop" && <ShopPage addToCart={addToCart} favorites={favorites} toggleFavorite={toggleFavorite} initialFilter={filterCategory} />}
-      {view === "wishlist" && <WishlistPage favorites={favorites} addToCart={addToCart} toggleFavorite={toggleFavorite} />}
+      {view === "wishlist" && <WishlistPage favorites={favorites} addToCart={addToCart} toggleFavorite={toggleFavorite} book={(service) => setModal(service.consultation ? { kind: "consultation", service } : { kind: "booking", service })} />}
       {view === "track" && <TrackPage />}
       {view === "policies" && <PoliciesPage />}
     </main>
     <Footer navigate={navigate} />
     <FloatingTrioWidget cartCount={count} favoritesCount={favorites.length} openCart={() => setCartOpen(true)} navigate={navigate} />
     {searchOpen && <SearchModal close={() => setSearchOpen(false)} navigate={(v) => { setSearchOpen(false); navigate(v); }} />}
-    {cartOpen && <CartDrawer cart={cart} close={() => setCartOpen(false)} update={updateCart} checkout={() => { setCartOpen(false); setModal({ kind: "checkout" }); }} />}
-    {modal && <FlowModal modal={modal} cart={cart} close={() => setModal(null)} complete={(message) => { setModal(null); setCart([]); setNotice(message); }} />}
-    {notice && <div className="toast"><Check size={17} />{notice}<button aria-label="Close notification" onClick={() => setNotice("")}><X size={16} /></button></div>}
+    {cartOpen && <CartDrawer cart={cart} close={() => setCartOpen(false)} update={updateCart} complete={(message) => { setCartOpen(false); setCart([]); setNotice(message); }} />}
+    {modal && <FlowModal modal={modal} close={() => setModal(null)} complete={(message) => { setModal(null); setNotice(message); }} />}
+    {notice && <div className="toast" role="status" aria-live="polite"><Check size={17} />{notice}<button aria-label="Close notification" onClick={() => setNotice("")}><X size={16} /></button></div>}
   </div>;
 }
 
 function SearchModal({ close, navigate }: { close: () => void; navigate: (v: View) => void }) {
   const [q, setQ] = useState("");
-  const results = q.length > 1 ? [
-    ...SERVICES.filter(s => s.name.toLowerCase().includes(q.toLowerCase()) || s.category.toLowerCase().includes(q.toLowerCase())).map(s => ({ label: s.name, sub: s.category, action: () => navigate("services") })),
-    ...PRODUCTS.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.category.toLowerCase().includes(q.toLowerCase())).map(p => ({ label: p.name, sub: p.category, action: () => navigate("shop") })),
+  const term = q.trim().toLowerCase();
+  const results = term.length > 0 ? [
+    ...SERVICES.filter(s => `${s.name} ${s.category} ${s.subCategory || ""} ${s.description}`.toLowerCase().includes(term)).map(s => ({ label: s.name, sub: `${s.category} service`, action: () => navigate("services") })),
+    ...PRODUCTS.filter(p => `${p.name} ${p.category} ${p.subCategory || ""}`.toLowerCase().includes(term)).map(p => ({ label: p.name, sub: `${p.category} product`, action: () => navigate("shop") })),
   ] : [];
   return (
     <div className="overlay modal-overlay" onMouseDown={close}>
-      <div className="search-modal" onMouseDown={e => e.stopPropagation()}>
+      <div className="search-modal" role="dialog" aria-modal="true" aria-label="Search Gailant Beauty" onMouseDown={e => e.stopPropagation()}>
         <div className="search-modal-inner">
           <Search size={20} color="#aaa" />
           <input autoFocus className="search-modal-input" placeholder="Search services, products…" value={q} onChange={e => setQ(e.target.value)} />
           <button className="search-modal-close" onClick={close} aria-label="Close search"><X size={18} /></button>
         </div>
+        {!term && <div className="search-suggestions">
+          <small>POPULAR SEARCHES</small>
+          <div>{["Nails", "Hair", "Lashes", "Makeup", "Wigs"].map(item => <button key={item} onClick={() => setQ(item)}>{item}</button>)}</div>
+        </div>}
         {results.length > 0 && <div className="search-results">
           {results.map((r, i) => <button key={i} className="search-result-row" onClick={r.action}>
             <span>{r.label}</span><small>{r.sub}</small><ArrowRight size={14} />
           </button>)}
         </div>}
-        {q.length > 1 && results.length === 0 && <p className="search-empty">No results for &quot;{q}&quot;</p>}
+        {term && results.length === 0 && <p className="search-empty">No results for &quot;{q}&quot;. Try nails, wigs, hair, lashes, or makeup.</p>}
       </div>
     </div>
   );
@@ -156,16 +189,16 @@ function FloatingTrioWidget({ cartCount, favoritesCount, openCart, navigate }: {
   );
 }
 
-function CrownMark() { return <button className="wordmark" onClick={() => window.location.reload()} aria-label="Gailand Beauty home"><Image src="/gailand-gold-monogram.png" alt="" width={1024} height={1024} priority /></button>; }
+function CrownMark({ onHome }: { onHome?: () => void }) { return <button className="wordmark" onClick={onHome || (() => window.location.assign("/"))} aria-label="Gailant Beauty home"><Image src="/gailand-crowned-g.png" alt="" width={1024} height={1024} priority /></button>; }
 
-function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart, openSearch }: { view: View; navigate: (v: View, f?: string) => void; menuOpen: boolean; setMenuOpen: (v: boolean) => void; cartCount: number; openCart: () => void; openSearch: () => void }) {
+function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, favoritesCount, openCart, openSearch }: { view: View; navigate: (v: View, f?: string) => void; menuOpen: boolean; setMenuOpen: (v: boolean) => void; cartCount: number; favoritesCount: number; openCart: () => void; openSearch: () => void }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const links: [View, string][] = [["services", "SERVICES"], ["shop", "SHOP"], ["track", "TRACK"], ["policies", "POLICIES"]];
 
   useEffect(() => {
     const onScroll = () => {
-      const hero = document.querySelector<HTMLElement>(".hero");
+      const hero = document.querySelector<HTMLElement>(".hero, .page-hero");
       const heroBottom = hero ? hero.offsetTop + hero.offsetHeight : 128;
       setScrolled(window.scrollY >= heroBottom - 68);
     };
@@ -178,13 +211,31 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart, op
     };
   }, []);
 
-  const isHeroNav = view === "home" && !menuOpen;
+  const isHeroNav = !menuOpen;
   const headerClass = `header${isHeroNav ? (scrolled ? " header--scrolled" : " header--transparent") : ""}`;
 
   return <header className={headerClass}><div className="nav-wrap">
-    <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">{menuOpen ? <X /> : <Menu />}</button>
-    <CrownMark />
-    <nav className={menuOpen ? "nav-links open" : "nav-links"}>{links.map(([id, label]) => <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)}>{label}</button>)}</nav>
+    <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu" aria-expanded={menuOpen} aria-controls="primary-navigation">{menuOpen ? <X /> : <Menu />}</button>
+    <CrownMark onHome={() => navigate("home")} />
+    <nav id="primary-navigation" className={menuOpen ? "nav-links open" : "nav-links"} aria-label="Primary navigation">
+      {links.map(([id, label]) => (
+        <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)}>
+          {label}
+        </button>
+      ))}
+      <div className="mobile-nav-categories">
+        <span className="mobile-nav-heading">CATEGORIES</span>
+        {CATEGORIES_DROPDOWN.flatMap(col => col.items).slice(0, 5).map((item) => (
+          <button
+            key={`mob-${item.label}`}
+            className="mobile-category-item"
+            onClick={() => navigate(item.target, item.filter)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </nav>
     <div className="nav-actions">
       <button className="search-icon-btn" onClick={openSearch} aria-label="Open search">
         <Search size={17} />
@@ -195,6 +246,7 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, openCart, op
       </button>
       <button className="search-icon-btn wishlist-icon-btn" onClick={() => navigate("wishlist")} aria-label="Open wishlist">
         <Heart size={17} />
+        {favoritesCount > 0 && <span className="wishlist-count" aria-label={`${favoritesCount} saved items`}>{favoritesCount}</span>}
       </button>
       
       {/* Categories Dropdown Menu - Main button navigates directly to services on click */}
@@ -258,14 +310,13 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
   const nextTestimonials = () => setTestimonialIndex((prev) => (prev < maxPages - 1 ? prev + 1 : 0));
 
   return <>
-    <section className="hero" aria-label="Gailand Beauty hero">
-      {/* Editorial image panel — right 65% */}
+    <section className="hero hero-editorial" aria-label="Gailant Beauty hero">
       <div className="hero-image-panel" aria-hidden="true">
         <picture>
           <source srcSet="/hero-editorial.jpg" type="image/jpeg" />
           <img
             src="/hero-editorial.jpg"
-            alt="Gailand Beauty editorial — model at marble counter with luxury haircare products in a gold-lit salon"
+            alt="Gailant Beauty editorial, model at marble counter with luxury haircare products in a gold-lit salon"
             className="hero-img"
             fetchPriority="high"
             decoding="async"
@@ -273,11 +324,9 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
             height="800"
           />
         </picture>
-        {/* Atmospheric cream-champagne fade bleeding from left toward content */}
         <div className="hero-fade" aria-hidden="true" />
       </div>
 
-      {/* Content panel — left 35% */}
       <div className="hero-copy">
         <h1>Where beauty<br />wears a <em>crown.</em></h1>
         <p className="hero-text">{BRAND.description}</p>
@@ -286,13 +335,31 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
             <CrownMarkIcon /> FIND YOUR SERVICE <ArrowRight size={15} />
           </button>
           <button className="hero-btn-secondary" onClick={() => navigate("shop")} id="hero-cta-shop">
-            <ShoppingBag size={14} /> SHOP OUR CATALOG
+            <ShoppingBag size={14} /> SHOP OUR CATALOG <ArrowRight size={15} />
           </button>
         </div>
       </div>
+
+      <p className="hero-category-label">EXPLORE OUR SERVICES</p>
+      <div className="hero-category-cards" aria-label="Explore beauty categories">
+        {[
+          { name: "NAILS", note: "Sets, care & artistry", filter: "Nails" },
+          { name: "HAIR", note: "Braids, locs & treatments", filter: "Hair" },
+          { name: "LASHES", note: "Classic to full volume", filter: "Lashes" },
+          { name: "MAKEUP", note: "Soft and full glam", filter: "Makeup" },
+        ].map((category) => (
+          <button key={category.name} className="hero-category-card" onClick={() => navigate("services", category.filter)}>
+            <span className="hero-category-photo" aria-hidden="true" />
+            <span className="hero-category-copy">
+              <strong>{category.name}</strong>
+              <small>{category.note}</small>
+            </span>
+            <ArrowRight size={17} aria-hidden="true" />
+          </button>
+        ))}
+      </div>
     </section>
-    <section className="marquee" aria-hidden="true"><span>NAILS</span><i>✦</i><span>HAIR</span><i>✦</i><span>LASHES</span><i>✦</i><span>MAKEUP</span><i>✦</i><span>BEAUTY, CROWNED</span></section>
-    <section className="section services-preview"><SectionHead kicker="The Gailand edit" title="Services made for your moment." action="View all services" onAction={() => navigate("services")} /><div className="service-grid">{SERVICES.filter((x) => x.featured).map((service, index) => <ServiceCard key={service.id} service={service} index={index} book={book} isFav={favorites.includes(service.id)} toggleFav={toggleFavorite} />)}</div></section>
+    <section className="section services-preview"><SectionHead kicker="The Gailant edit" title="Services made for your moment." action="View all services" onAction={() => navigate("services")} /><div className="service-grid">{SERVICES.filter((x) => x.featured).map((service, index) => <ServiceCard key={service.id} service={service} index={index} book={book} isFav={favorites.includes(service.id)} toggleFav={toggleFavorite} />)}</div></section>
     <section className="statement"><p className="eyebrow light">Our philosophy</p><blockquote>“Every detail should feel <em>intentional.</em><br />Every client should leave feeling <em>royal.</em>”</blockquote><p>{BRAND.about}</p></section>
     <section className="section shop-preview"><SectionHead kicker="The beauty shelf" title="Your crown, cared for." action="Shop all" onAction={() => navigate("shop")} /><div className="product-grid">{PRODUCTS.map((product) => <ProductCard key={product.id} product={product} add={addToCart} isFav={favorites.includes(product.id)} toggleFav={toggleFavorite} />)}</div></section>
     <section className="experience"><div><p className="eyebrow">Beauty comes to you</p><h2>The salon experience,<br /><em>at your door.</em></h2></div><div><p>Professional beauty service, wherever you feel most at ease. Select home service when booking and we’ll take care of the rest.</p><button className="pill light" onClick={() => navigate("services")}>Book home service <ArrowRight size={17} /></button></div></section>
@@ -377,7 +444,7 @@ function ServicesPage({ book, favorites, toggleFavorite, initialFilter }: { book
   const categories = ["All", "Nails", "Hair", "Lashes", "Makeup", "Brows", "Locs", "Long Hair", "Short Hair", "Treatments"];
   const list = SERVICES.filter(s => filter === "All" || s.category === filter || s.subCategory === filter);
 
-  return <><PageHero number="01" kicker="Services menu" title="Curated for your" italic="crowning moment." text="Detailed gel sets, braids, silk press and customized lash applications in Accra." />
+  return <><PageHero variant="services" number="01" kicker="Services menu" title="Curated for your" italic="crowning moment." text="Detailed gel sets, braids, silk press and customized lash applications in Accra." />
     <section className="section catalog">
       <div className="filter-row">
         {categories.map(c => <button key={c} className={filter === c ? "active" : ""} onClick={() => setFilter(c)}>{c}</button>)}
@@ -399,7 +466,7 @@ function ShopPage({ addToCart, favorites, toggleFavorite, initialFilter }: { add
     return matchesFilter && matchesSearch;
   });
 
-  return <><PageHero number="02" kicker="The shop" title="Beauty that keeps" italic="giving." text="Studio-approved wigs, tools and essentials, selected to make every day feel polished." />
+  return <><PageHero variant="shop" number="02" kicker="The shop" title="Beauty that keeps" italic="giving." text="Studio-approved wigs, tools and essentials, selected to make every day feel polished." />
     <section className="section catalog">
       <div className="filter-row" style={{ marginBottom: 20 }}>
         {categories.map(c => <button key={c} className={filter === c ? "active" : ""} onClick={() => setFilter(c)}>{c}</button>)}
@@ -415,11 +482,11 @@ function ShopPage({ addToCart, favorites, toggleFavorite, initialFilter }: { add
   </>;
 }
 
-function WishlistPage({ favorites, addToCart, toggleFavorite }: { favorites: string[]; addToCart: (p: Product) => void; toggleFavorite: (id: string) => void }) {
+function WishlistPage({ favorites, addToCart, toggleFavorite, book }: { favorites: string[]; addToCart: (p: Product) => void; toggleFavorite: (id: string) => void; book: (s: Service) => void }) {
   const savedProducts = PRODUCTS.filter((p) => favorites.includes(p.id));
   const savedServices = SERVICES.filter((s) => favorites.includes(s.id));
 
-  return <><PageHero number="02" kicker="Saved pieces" title="Your personal" italic="wishlist." text="Keep track of your favorite beauty pieces and studio essentials." />
+  return <><PageHero variant="wishlist" number="02" kicker="Saved pieces" title="Your personal" italic="wishlist." text="Keep track of your favorite beauty pieces and studio essentials." />
     <section className="section catalog">
       {savedProducts.length === 0 && savedServices.length === 0 ? (
         <div className="empty-state" style={{ padding: "80px 20px" }}>
@@ -433,7 +500,7 @@ function WishlistPage({ favorites, addToCart, toggleFavorite }: { favorites: str
             <div style={{ marginBottom: 40 }}>
               <h3 style={{ font: "500 24px var(--display)", marginBottom: 16 }}>Saved Services</h3>
               <div className="service-grid">
-                {savedServices.map((s, i) => <ServiceCard key={s.id} service={s} index={i} book={() => {}} isFav={true} toggleFav={toggleFavorite} />)}
+                {savedServices.map((s, i) => <ServiceCard key={s.id} service={s} index={i} book={book} isFav={true} toggleFav={toggleFavorite} />)}
               </div>
             </div>
           )}
@@ -451,22 +518,36 @@ function WishlistPage({ favorites, addToCart, toggleFavorite }: { favorites: str
   </>;
 }
 
-function PageHero({ number, kicker, title, italic, text }: { number: string; kicker: string; title: string; italic: string; text: string }) { return <section className="page-hero"><span>{number}</span><div><p className="eyebrow">{kicker}</p><h1>{title}<br /><em>{italic}</em></h1></div><p>{text}</p></section>; }
+function PageHero({ variant, number, kicker, title, italic, text }: { variant: "services" | "shop" | "wishlist" | "track" | "policies"; number: string; kicker: string; title: string; italic: string; text: string }) { return <section className={`page-hero page-hero-${variant}`}><span>{number}</span><div><p className="eyebrow">{kicker}</p><h1>{title}<br /><em>{italic}</em></h1></div><p>{text}</p></section>; }
 
 function TrackPage() {
   const [reference, setReference] = useState(""); 
   const [record, setRecord] = useState<TrackingRecord | null>(null);
   const [searched, setSearched] = useState(false);
+  const [tracking, setTracking] = useState(false);
+  const [trackingError, setTrackingError] = useState("");
 
-  const handleTrack = (e: React.FormEvent) => {
+  const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanRef = reference.trim().toUpperCase();
-    const found = MOCK_TRACKING_DATABASE[cleanRef] || null;
-    setRecord(found);
+    setTracking(true);
+    setTrackingError("");
+    const live = await trackReference(cleanRef);
+    const found = live.data || MOCK_TRACKING_DATABASE[cleanRef] || null;
+    setRecord(found as TrackingRecord | null);
+    setTrackingError(live.error || "");
+    setTracking(false);
     setSearched(true);
   };
+  const timeline = record ? [
+    { label: "Reference received", detail: "Your request is registered in the Gailant Beauty system." },
+    { label: record.type === "Order" ? "Payment confirmed" : "Appointment confirmed", detail: record.status === "Canceled" ? "This stage was completed before the cancellation." : "Your payment and requested details have been verified." },
+    { label: record.status === "Canceled" ? "Canceled" : record.status === "Rescheduled" ? "Schedule updated" : record.type === "Order" ? "Preparing your order" : "Your beauty appointment", detail: record.date },
+    { label: record.type === "Order" ? "Ready for delivery" : "Service complete", detail: record.status === "Canceled" ? (record.refundNote || "Refund processing details are shown below.") : "We will update this stage when it is complete." },
+  ] : [];
+  const activeTimelineIndex = record?.status === "Canceled" ? 2 : record?.status === "Rescheduled" ? 2 : record?.status === "Paid" || record?.status === "Guaranteed" ? 1 : 0;
 
-  return <><PageHero number="03" kicker="Track with ease" title="Know what’s" italic="next." text="Use your order or booking reference to see real-time payment status and schedule updates." />
+  return <><PageHero variant="track" number="03" kicker="Track with ease" title="Know what’s" italic="next." text="Use your order or booking reference to see real-time payment status and schedule updates." />
     <section className="track-section">
       <div className="track-card">
         <Package size={32} />
@@ -476,32 +557,27 @@ function TrackPage() {
           <label>REFERENCE NUMBER
             <input required value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. GB-2026-001" />
           </label>
-          <button className="pill dark" type="submit">Check status <ArrowRight size={17} /></button>
+          <button className="pill dark" type="submit" disabled={tracking}>{tracking ? "Checking…" : "Check status"} <ArrowRight size={17} /></button>
         </form>
 
-        {searched && record && (
-          <div className="track-result" style={{ flexDirection: "column", gap: 12, marginTop: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <small style={{ color: "#777" }}>REF: {record.reference}</small>
-                <h3 style={{ font: "500 22px var(--display)", margin: "4px 0" }}>{record.item}</h3>
-                <p style={{ margin: 0, fontSize: 13, color: "#555" }}>Client: <strong>{record.clientName}</strong> · {record.type}</p>
-              </div>
-              <span className={`badge-status ${record.status.toLowerCase()}`}>{record.status}</span>
-            </div>
-            <div style={{ borderTop: "1px solid #ddd", paddingTop: 12, fontSize: 13 }}>
-              <p style={{ margin: "0 0 6px" }}>📅 <strong>Scheduled Date / Details:</strong> {record.date}</p>
-              {record.adminNote && <p style={{ margin: "6px 0", background: "#fff", padding: "10px 14px", borderRadius: 6, borderLeft: "3px solid #111" }}>💬 <strong>Studio Note:</strong> {record.adminNote}</p>}
-              {record.status === "Canceled" && (
-                <div style={{ marginTop: 10, background: "#fff5f5", padding: "12px 14px", borderRadius: 6, border: "1px solid #fecaca", color: "#991b1b" }}>
-                  ⚠️ <strong>Canceled & Refunded Status:</strong> {record.refundNote || "Appointment canceled. 100% Refund has been processed back to your original payment method."}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {trackingError && <p className="tracking-error" role="alert">{trackingError}</p>}
 
-        {searched && !record && (
+        {searched && record && <div className="track-result">
+          <header className="track-result-head">
+            <div><small>REFERENCE {record.reference}</small><h3>{record.item}</h3><p>{record.clientName} • {record.type}</p></div>
+            <span className={`badge-status ${record.status.toLowerCase()}`}>{record.status}</span>
+          </header>
+          <div className="tracking-timeline">
+            {timeline.map((item, index) => <div className={`timeline-event ${index <= activeTimelineIndex ? "complete" : ""} ${index === activeTimelineIndex ? "current" : ""}`} key={item.label}>
+              <span className="timeline-dot">{index < activeTimelineIndex ? <Check size={14} /> : index + 1}</span>
+              <div><time>{index === activeTimelineIndex ? "CURRENT UPDATE" : index < activeTimelineIndex ? "COMPLETED" : "UPCOMING"}</time><strong>{item.label}</strong><p>{item.detail}</p></div>
+            </div>)}
+          </div>
+          {record.adminNote && <aside className="studio-note"><small>NOTE FROM THE STUDIO</small><p>{record.adminNote}</p></aside>}
+          {record.status === "Canceled" && <aside className="refund-note"><small>REFUND UPDATE</small><p>{record.refundNote || "Your refund has been processed to the original payment method."}</p></aside>}
+        </div>}
+
+        {searched && !record && !trackingError && (
           <div className="track-result" style={{ marginTop: 24, background: "#fff8f6" }}>
             <div>
               <strong>Reference Not Found</strong>
@@ -536,7 +612,7 @@ function PoliciesPage() {
     }
   };
 
-  return <><PageHero number="04" kicker="Good to know" title="Policies, FAQs &" italic="reviews." text="Clear studio guidelines, frequently asked questions, and real client reviews." />
+  return <><PageHero variant="policies" number="04" kicker="Good to know" title="Policies, FAQs &" italic="reviews." text="Clear studio guidelines, frequently asked questions, and real client reviews." />
     <section className="policy-section">
       <div>
         {/* Navigation Tabs for Reorganized Layout */}
@@ -570,7 +646,7 @@ function PoliciesPage() {
         {activeTab === "review" && (
           <div className="review-form-card" style={{ marginTop: 0 }}>
             <h3>Leave a Review</h3>
-            <p>Loved your Gailand experience? Share your notes with us!</p>
+            <p>Loved your Gailant experience? Share your notes with us!</p>
             {submitted ? (
               <p style={{ color: "#166534", fontWeight: 600 }}>Thank you for your feedback! Your review has been added.</p>
             ) : (
@@ -598,18 +674,51 @@ function PoliciesPage() {
   </>;
 }
 
-function CartDrawer({ cart, close, update, checkout }: { cart: CartLine[]; close: () => void; update: (id: string, n: number) => void; checkout: () => void }) {
+function CartDrawer({ cart, close, update, complete }: { cart: CartLine[]; close: () => void; update: (id: string, n: number) => void; complete: (message: string) => void }) {
+  const [step, setStep] = useState<"bag" | "checkout">("bag");
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", notes: "" });
   const subtotal = cart.reduce((sum, x) => sum + x.price * x.quantity, 0);
-  return <div className="overlay" onMouseDown={close}><aside className="cart-drawer" onMouseDown={(e) => e.stopPropagation()}><header><div><small>YOUR SELECTION</small><h2>Shopping bag</h2></div><button onClick={close} aria-label="Close cart"><X /></button></header><div className="cart-lines">{cart.length === 0 ? <div className="empty-state"><ShoppingBag /><h3>Your bag is waiting.</h3><p>Discover our curated beauty collection.</p></div> : cart.map((x) => <div className="cart-line" key={x.id}><div className={`mini-product ${x.tone}`}>G</div><div><span>{x.category}</span><strong>{x.name}</strong><div className="quantity"><button onClick={() => update(x.id, -1)}><Minus size={13} /></button><span>{x.quantity}</span><button onClick={() => update(x.id, 1)}><Plus size={13} /></button></div></div><b>{money(x.price * x.quantity)}</b></div>)}</div>{cart.length > 0 && <footer><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div><p>Delivery calculated at checkout.</p><button className="pill dark full" onClick={checkout}>Secure checkout <ArrowRight size={17} /></button><small>Payments secured by Paystack</small></footer>}</aside></div>;
+  const change = (key: keyof typeof form, value: string) => setForm(current => ({ ...current, [key]: value }));
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    const { error } = await insertRecord("orders", { ...form, items: cart, total_amount: subtotal, status: "pending_payment" });
+    setLoading(false);
+    if (error) return alert(error);
+    complete(`Thank you, ${form.name.split(" ")[0] || "queen"}. Your order request is confirmed.`);
+  };
+  return <div className="overlay" onMouseDown={close}>
+    <aside className={`cart-drawer ${step === "checkout" ? "checkout-step" : ""}`} role="dialog" aria-modal="true" aria-labelledby="cart-title" onMouseDown={(e) => e.stopPropagation()}>
+      <header>
+        <div><small>{step === "bag" ? "YOUR SELECTION" : "SECURE CHECKOUT"}</small><h2 id="cart-title">{step === "bag" ? "Shopping bag" : "Delivery details"}</h2></div>
+        <button onClick={close} aria-label="Close cart"><X /></button>
+      </header>
+      {step === "bag" ? <>
+        <div className="cart-lines">{cart.length === 0 ? <div className="empty-state"><ShoppingBag /><h3>Your bag is waiting.</h3><p>Discover our curated beauty collection.</p></div> : cart.map((x) => <div className="cart-line" key={x.id}><div className={`mini-product ${x.tone}`}>G</div><div><span>{x.category}</span><strong>{x.name}</strong><div className="quantity"><button onClick={() => update(x.id, -1)} aria-label={`Remove one ${x.name}`}><Minus size={13} /></button><span aria-label={`${x.quantity} in bag`}>{x.quantity}</span><button onClick={() => update(x.id, 1)} aria-label={`Add one ${x.name}`}><Plus size={13} /></button></div></div><b>{money(x.price * x.quantity)}</b></div>)}</div>
+        {cart.length > 0 && <footer><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div><p>Delivery is confirmed with our team after payment.</p><button className="pill dark full" onClick={() => setStep("checkout")}>Continue securely <ArrowRight size={17} /></button><small>Payments secured by Paystack</small></footer>}
+      </> : <form className="cart-checkout-form" onSubmit={submit}>
+        <button type="button" className="cart-back" onClick={() => setStep("bag")}>← Back to bag</button>
+        <div className="checkout-total"><span>Order total</span><strong>{money(subtotal)}</strong></div>
+        <label>Full name<input required value={form.name} onChange={e => change("name", e.target.value)} autoComplete="name" /></label>
+        <label>Phone or WhatsApp<input required value={form.phone} onChange={e => change("phone", e.target.value)} inputMode="tel" autoComplete="tel" /></label>
+        <label>Email address<input type="email" value={form.email} onChange={e => change("email", e.target.value)} autoComplete="email" /></label>
+        <label>Delivery address<textarea required value={form.address} onChange={e => change("address", e.target.value)} placeholder="Street, area and city" /></label>
+        <label>Delivery note <span>Optional</span><textarea value={form.notes} onChange={e => change("notes", e.target.value)} placeholder="Landmark or delivery instructions" /></label>
+        <button className="pill dark full" disabled={loading}>{loading ? "Submitting..." : `Continue to Paystack • ${money(subtotal)}`}</button>
+        <small className="secure-note">Secure payment • Mobile Money and cards accepted</small>
+      </form>}
+    </aside>
+  </div>;
 }
 
-function FlowModal({ modal, cart, close, complete }: { modal: NonNullable<Modal>; cart: CartLine[]; close: () => void; complete: (m: string) => void }) {
+function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; close: () => void; complete: (m: string) => void }) {
   const [loading, setLoading] = useState(false);
   const [homeService, setHomeService] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", date: "", time: "", stylist: "", address: "", notes: "" });
   
-  const service = modal.kind === "booking" || modal.kind === "consultation" ? modal.service : null;
-  const total = modal.kind === "checkout" ? cart.reduce((s, x) => s + x.price * x.quantity, 0) : (service?.price || 0) + (homeService ? BRAND.homeSurcharge : 0);
+  const service = modal.service;
+  const total = (service?.price || 0) + (homeService ? BRAND.homeSurcharge : 0);
   const due = modal.kind === "booking" ? Math.ceil(total * BRAND.depositPercent / 100) : total;
   
   const change = (key: keyof typeof form, value: string) => setForm((x) => ({ ...x, [key]: value }));
@@ -617,8 +726,8 @@ function FlowModal({ modal, cart, close, complete }: { modal: NonNullable<Modal>
   const submit = async (e: React.FormEvent) => { 
     e.preventDefault(); 
     setLoading(true); 
-    const table = modal.kind === "checkout" ? "orders" : modal.kind === "consultation" ? "consultation_requests" : "bookings"; 
-    const payload = modal.kind === "checkout" ? { name: form.name, phone: form.phone, email: form.email, address: form.address, items: cart, total_amount: due, status: "pending_payment" } : modal.kind === "consultation" ? { name: form.name, phone: form.phone, email: form.email, service_id: service?.id, service_name: service?.name, notes: form.notes, status: "new" } : { name: form.name, phone: form.phone, email: form.email, service_id: service?.id, service_name: service?.name, appointment_date: form.date, appointment_time: form.time, stylist_preference: form.stylist, home_service: homeService, address: form.address, notes: form.notes, total_amount: total, deposit_amount: due, status: "pending_payment" }; 
+    const table = modal.kind === "consultation" ? "consultation_requests" : "bookings";
+    const payload = modal.kind === "consultation" ? { name: form.name, phone: form.phone, email: form.email, service_id: service?.id, service_name: service?.name, notes: form.notes, status: "new" } : { name: form.name, phone: form.phone, email: form.email, service_id: service?.id, service_name: service?.name, appointment_date: form.date, appointment_time: form.time, stylist_preference: form.stylist, home_service: homeService, address: form.address, notes: form.notes, total_amount: total, deposit_amount: due, status: "pending_payment" };
     const { error } = await insertRecord(table, payload); 
     setLoading(false); 
     if (error) return alert(error);
@@ -626,19 +735,17 @@ function FlowModal({ modal, cart, close, complete }: { modal: NonNullable<Modal>
   };
 
   return (
-    <div className="overlay modal-overlay">
-      <div className="flow-modal">
+    <div className="overlay modal-overlay" onMouseDown={close}>
+      <div className="flow-modal" role="dialog" aria-modal="true" aria-labelledby="flow-modal-title" onMouseDown={(event) => event.stopPropagation()}>
         <button className="modal-close" onClick={close} aria-label="Close"><X /></button>
         <div className="modal-intro">
-          <p className="eyebrow">{modal.kind === "checkout" ? "Secure checkout" : modal.kind === "consultation" ? "Let’s talk" : "Reserve your time"}</p>
-          <h2>{modal.kind === "checkout" ? "Complete your order." : service?.name}</h2>
+          <p className="eyebrow">{modal.kind === "consultation" ? "Let’s talk" : "Reserve your time"}</p>
+          <h2 id="flow-modal-title">{service?.name}</h2>
           <p>{modal.kind === "consultation" ? "Tell us what you have in mind and our team will reach out with the best next step." : "A few details, then your beauty moment is secured."}</p>
-          {modal.kind !== "checkout" && (
-            <div className="modal-summary">
-              <span>{service?.duration}</span>
-              <strong>{modal.kind === "consultation" ? "No payment today" : `${money(due)} deposit`}</strong>
-            </div>
-          )}
+          <div className="modal-summary">
+            <span>{service?.duration}</span>
+            <strong>{modal.kind === "consultation" ? "No payment today" : `${money(due)} deposit`}</strong>
+          </div>
         </div>
         <form onSubmit={submit} className="flow-form">
           <div className="two-col">
@@ -666,7 +773,7 @@ function FlowModal({ modal, cart, close, complete }: { modal: NonNullable<Modal>
               <label className="switch-row">
                 <input type="checkbox" checked={homeService} onChange={(e) => setHomeService(e.target.checked)} />
                 <span>
-                  <strong>Bring Gailand to me</strong>
+                  <strong>Bring Gailant to me</strong>
                   <small>Home service from {money(BRAND.homeSurcharge)} within Accra</small>
                 </span>
               </label>
@@ -674,13 +781,9 @@ function FlowModal({ modal, cart, close, complete }: { modal: NonNullable<Modal>
             </>
           )}
 
-          {modal.kind === "checkout" && (
-            <label>DELIVERY ADDRESS<input required value={form.address} onChange={(e) => change("address", e.target.value)} placeholder="Street, area, city" /></label>
-          )}
-          
           <label>NOTES <span>OPTIONAL</span><textarea value={form.notes} onChange={(e) => change("notes", e.target.value)} placeholder="Anything we should know?" /></label>
-          <button className="pill dark full" disabled={loading}>{loading ? "Please wait…" : modal.kind === "consultation" ? "Send consultation request" : `Continue to Paystack · ${money(due)}`}</button>
-          {modal.kind !== "consultation" && <small className="secure-note">Secure payment · Paystack · MoMo & cards accepted</small>}
+          <button className="pill dark full" disabled={loading}>{loading ? "Please wait…" : modal.kind === "consultation" ? "Send consultation request" : `Continue to Paystack • ${money(due)}`}</button>
+          {modal.kind !== "consultation" && <small className="secure-note">Secure payment • Paystack • MoMo & cards accepted</small>}
         </form>
       </div>
     </div>
@@ -699,12 +802,12 @@ export function AdminPage() {
     <section className="admin-login">
       <div>
         <div className="admin-brand" style={{ cursor: "default" }}>
-          <span>Gailand</span><small>BEAUTY</small>
+          <span>Gailant</span><small>BEAUTY</small>
         </div>
         <div className="login-card">
           <p className="eyebrow">Staff access</p>
           <h1>Welcome back.</h1>
-          <p>Enter your credentials to open the Gailand Beauty office.</p>
+          <p>Enter your credentials to open the Gailant Beauty office.</p>
           <form onSubmit={async (e) => { e.preventDefault(); const result = await signInAdmin(username.trim().toLowerCase(), password); if (!result.error && !result.local) { setLoggedIn(true); setLoginError(""); } else setLoginError(result.error || "Supabase authentication is not configured."); }}>
             <label>USERNAME<input autoComplete="username" required value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Admin username" /></label>
             <label>PASSWORD
@@ -724,7 +827,7 @@ export function AdminPage() {
           <Link className="back-site" href="/">← Return to main website</Link>
         </div>
       </div>
-      <aside><span>GB</span><p>THE GAILAND OFFICE</p></aside>
+      <aside><span>GB</span><p>THE GAILANT OFFICE</p></aside>
     </section>
   );
 
@@ -734,7 +837,7 @@ export function AdminPage() {
     <section className="admin-shell">
       <aside className="admin-sidebar">
         <div className="wordmark" style={{ cursor: "default" }}>
-          <span>GAILAND</span><small>BEAUTY</small>
+          <span>GAILANT</span><small>BEAUTY</small>
         </div>
         <nav>
           {tabs.map((x) => (
@@ -748,7 +851,7 @@ export function AdminPage() {
       <div className="admin-main">
         <header>
           <div>
-            <p>GAILAND BEAUTY · ADMIN OFFICE</p>
+            <p>GAILANT BEAUTY • ADMIN OFFICE</p>
             <h1>{tab}</h1>
           </div>
           <button className="pill dark large"><Plus size={16} /> Add new entry</button>
@@ -833,5 +936,5 @@ function Footer({ navigate }: { navigate: (v: View) => void }) {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
       </a>
     </div>
-  </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div className="footer-hours"><small>OPENING HOURS</small><p><strong>Mon–Sat</strong><br />8:00am — 7:00pm</p><p><strong>Sunday</strong><br />12:00pm — 7:00pm</p></div></div><div className="footer-bottom"><span>© 2026 Gailand Beauty</span><button onClick={() => navigate("policies")}>Policies & terms</button><span>Beauty, crowned.</span></div></footer>;
+  </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div className="footer-hours"><small>OPENING HOURS</small><p><strong>Mon to Sat</strong><br />8:00am, 7:00pm</p><p><strong>Sunday</strong><br />12:00pm, 7:00pm</p></div></div><div className="footer-bottom"><span>© 2026 Gailant Beauty</span><button onClick={() => navigate("policies")}>Policies & terms</button><span>Beauty, crowned.</span></div></footer>;
 }

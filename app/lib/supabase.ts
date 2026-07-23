@@ -81,3 +81,78 @@ export async function reauthenticateAdmin(password: string) {
   const result = await signInAdmin(user.email, password);
   return { error: result.error };
 }
+
+export type LiveTrackingRecord = {
+  reference: string;
+  clientName: string;
+  type: "Booking" | "Order";
+  item: string;
+  status: string;
+  date: string;
+  adminNote?: string;
+};
+
+function mapTrackingRow(row: Record<string, unknown>): LiveTrackingRecord {
+  return {
+    reference: String(row.reference || ""),
+    clientName: String(row.client_name || row.name || "Gailant client"),
+    type: String(row.record_type || "Booking") === "Order" ? "Order" : "Booking",
+    item: String(row.item || row.service_name || "Gailant Beauty service"),
+    status: String(row.status || "Pending").replaceAll("_", " "),
+    date: String(row.scheduled_detail || row.appointment_date || "Schedule pending"),
+    ...(row.admin_note ? { adminNote: String(row.admin_note) } : {}),
+  };
+}
+
+export async function trackReference(reference: string): Promise<{ data: LiveTrackingRecord | null; error: string | null }> {
+  if (!supabase) return { data: null, error: null };
+  const cleanReference = reference.trim().toUpperCase();
+
+  const rpc = await supabase.rpc("track_gailand_reference", { lookup_reference: cleanReference });
+  if (!rpc.error && Array.isArray(rpc.data) && rpc.data[0]) {
+    return { data: mapTrackingRow(rpc.data[0] as Record<string, unknown>), error: null };
+  }
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    const missingFunction = rpc.error?.message?.toLowerCase().includes("function") || rpc.error?.code === "PGRST202";
+    return { data: null, error: missingFunction ? "Live tracking is awaiting its database update." : null };
+  }
+
+  const isOrder = cleanReference.startsWith("GB-O-");
+  let directData: unknown = null;
+  if (isOrder) {
+    const direct = await supabase
+      .from("orders")
+      .select("reference,name,items,status,payment_status,estimated_delivery_at,admin_note")
+      .eq("reference", cleanReference)
+      .maybeSingle();
+    if (direct.error) return { data: null, error: message(direct.error) };
+    directData = direct.data;
+  } else {
+    const direct = await supabase
+      .from("bookings")
+      .select("reference,name,service_name,status,payment_status,appointment_date,appointment_time,admin_note")
+      .eq("reference", cleanReference)
+      .maybeSingle();
+    if (direct.error) return { data: null, error: message(direct.error) };
+    directData = direct.data;
+  }
+  if (!directData) return { data: null, error: null };
+
+  const row = directData as Record<string, unknown>;
+  if (isOrder) {
+    const items = Array.isArray(row.items) ? row.items as Record<string, unknown>[] : [];
+    row.record_type = "Order";
+    row.item = String(items[0]?.name || "Gailant Beauty order");
+    row.scheduled_detail = row.estimated_delivery_at
+      ? new Date(String(row.estimated_delivery_at)).toLocaleString()
+      : "Delivery timing pending";
+  } else {
+    row.record_type = "Booking";
+    row.item = row.service_name;
+    row.scheduled_detail = `${row.appointment_date || "Date pending"}${row.appointment_time ? ` at ${row.appointment_time}` : ""}`;
+  }
+  row.client_name = row.name;
+  return { data: mapTrackingRow(row), error: null };
+}

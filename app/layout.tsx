@@ -7,13 +7,13 @@ const sans = DM_Sans({ variable: "--font-sans", subsets: ["latin"], weight: ["40
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://gailant-beauty.vercel.app"),
-  title: "Gailand Beauty | Beauty, Crowned in Accra",
-  description: "Abeka's premium studio for nails, hair, lashes and makeup — in-studio or at your door.",
+  title: "Gailant Beauty | Beauty, Crowned in Accra",
+  description: "Abeka's premium studio for nails, hair, lashes and makeup, in-studio or at your door.",
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
   openGraph: {
-    title: "Gailand Beauty | Where Beauty Wears a Crown",
+    title: "Gailant Beauty | Where Beauty Wears a Crown",
     description: "Premium nails, hair, lashes and makeup in Abeka, Accra.",
-    images: [{ url: "/og.png", width: 1792, height: 917, alt: "Gailand Beauty — Where Beauty Wears a Crown" }],
+    images: [{ url: "/og.png", width: 1792, height: 917, alt: "Gailant Beauty, Where Beauty Wears a Crown" }],
   },
   twitter: { card: "summary_large_image", images: ["/og.png"] },
 };

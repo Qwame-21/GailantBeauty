@@ -1,4 +1,4 @@
--- Gailand Beauty initial Supabase schema
+-- Gailant Beauty initial Supabase schema
 create extension if not exists "pgcrypto";
 
 create table if not exists services (

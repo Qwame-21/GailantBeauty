@@ -1,13 +1,13 @@
 export const BRAND = {
-  name: "Gailand Beauty",
+  name: "Gailant Beauty",
   tagline: "Where Beauty Wears a Crown",
-  description: "Gailand Beauty is Abeka's studio for nails, hair, lashes and makeup — polished, professional beauty, in-studio or delivered to your door.",
-  about: "Gailand Beauty is a beauty studio in Abeka built around one idea: every client should leave feeling like royalty. From nails and braids to lashes, makeup and beyond, our stylists bring skill and care to every appointment — whether you come to us or we come to you. Beauty, crowned.",
+  description: "Gailant Beauty is Abeka's studio for nails, hair, lashes and makeup, polished, professional beauty, in-studio or delivered to your door.",
+  about: "Gailant Beauty is a beauty studio in Abeka built around one idea: every client should leave feeling like royalty. From nails and braids to lashes, makeup and beyond, our stylists bring skill and care to every appointment, whether you come to us or we come to you. Beauty, crowned.",
   location: "Abeka Free Pipe Junction, Accra",
   primaryPhone: "0554980760",
   secondaryPhone: "0208228030",
   whatsapp: "233554980760",
-  hours: "Mon–Sat 8am–7pm · Sun 12pm–7pm",
+  hours: "Mon to Sat 8am to 7pm • Sun 12pm to 7pm",
   homeSurcharge: 100,
   depositPercent: 30,
 };
@@ -51,7 +51,7 @@ export const CATEGORIES_DROPDOWN = [
 
 export const SERVICES: Service[] = [
   { id: "svc-1", name: "Signature Gel Set", category: "Nails", subCategory: "Gel", price: 180, duration: "1 hr 30 min", description: "Detailed prep, shaping and a flawless gel finish.", featured: true },
-  { id: "svc-2", name: "Knotless Braids (Long)", category: "Hair", subCategory: "Long Hair", price: 450, duration: "4–6 hrs", description: "Lightweight, clean-parted long braids finished with care.", featured: true },
+  { id: "svc-2", name: "Knotless Braids (Long)", category: "Hair", subCategory: "Long Hair", price: 450, duration: "4 to 6 hrs", description: "Lightweight, clean-parted long braids finished with care.", featured: true },
   { id: "svc-3", name: "Soft Glam", category: "Makeup", subCategory: "Makeup", price: 350, duration: "1 hr 15 min", description: "Radiant skin, softly sculpted eyes and an elegant finish.", featured: true },
   { id: "svc-4", name: "Classic Lash Set", category: "Lashes", subCategory: "Lashes", price: 250, duration: "2 hrs", description: "A natural, polished set tailored to your eye shape." },
   { id: "svc-5", name: "Microblading", category: "Brows", subCategory: "Brows", price: 900, duration: "Consultation", description: "Bespoke brow mapping and semi-permanent definition.", consultation: true },
@@ -67,7 +67,7 @@ export const PRODUCTS: Product[] = [
   { id: "prd-4", name: "Gloss & Go Duo", category: "Beauty", subCategory: "Beauty", price: 120, description: "Two high-shine lip essentials for effortless polish.", tone: "blush" },
 ];
 
-export type TrackingStatus = "Paid" | "Guaranteed" | "Rescheduled" | "Canceled";
+export type TrackingStatus = string;
 
 export type TrackingRecord = {
   reference: string;
@@ -122,7 +122,7 @@ export const MOCK_TRACKING_DATABASE: Record<string, TrackingRecord> = {
 
 export const FAQS = [
   { question: "How do I book an appointment?", answer: "Choose your desired service, click 'Book' or 'Request', select your preferred date and time, and secure your slot with a 30% deposit via Paystack." },
-  { question: "Do you offer home services?", answer: "Yes! Select 'Bring Gailand to me' when booking any service. We bring our full professional studio setup directly to your home or hotel in Accra." },
+  { question: "Do you offer home services?", answer: "Yes! Select 'Bring Gailant to me' when booking any service. We bring our full professional studio setup directly to your home or hotel in Accra." },
   { question: "What is your rescheduling policy?", answer: "You can reschedule your appointment up to 24 hours prior to your scheduled time. Deposits remain valid for 1 free reschedule." },
   { question: "How can I track my booking or order?", answer: "Enter your reference code (e.g. GB-2026-001) in the Track page to view your payment status, schedule updates, or cancellation details in real-time." }
 ];
@@ -130,7 +130,7 @@ export const FAQS = [
 export const TESTIMONIALS = [
   { quote: "From the welcome to the final look, everything felt considered. My nails were immaculate and lasted beautifully.", name: "Ama K.", service: "Signature Gel Set", rating: 5 },
   { quote: "The home service was punctual, professional and so convenient. I felt completely taken care of.", name: "Nana A.", service: "Soft Glam", rating: 5 },
-  { quote: "My braids are neat, light and exactly what I showed them. Gailand is now my beauty home.", name: "Esi M.", service: "Knotless Braids", rating: 5 },
+  { quote: "My braids are neat, light and exactly what I showed them. Gailant is now my beauty home.", name: "Esi M.", service: "Knotless Braids", rating: 5 },
   { quote: "Ordered the Accra Bob unit online and received it the same afternoon. Top notch luxury packaging!", name: "Yaa B.", service: "The Accra Bob", rating: 5 }
 ];
 
@@ -141,4 +141,3 @@ export const POLICIES = [
   "Home service is available within Accra; distance-based charges apply.",
   "Please arrive with hair prepared as stated in your service notes.",
 ];
-

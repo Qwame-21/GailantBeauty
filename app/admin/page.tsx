@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { GailandAdmin } from "../AdminDashboard";
 
 export const metadata: Metadata = {
-  title: "Staff Dashboard | Gailand Beauty",
-  description: "Private staff access for Gailand Beauty.",
+  title: "Staff Dashboard | Gailant Beauty",
+  description: "Private staff access for Gailant Beauty.",
   robots: { index: false, follow: false },
 };
 

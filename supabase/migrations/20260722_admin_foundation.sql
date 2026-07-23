@@ -54,7 +54,7 @@ create table if not exists public.staff (
   avatar_url text, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 create table if not exists public.business_settings (
-  id text primary key default 'default' check (id = 'default'), business_name text not null default 'Gailand Beauty',
+  id text primary key default 'default' check (id = 'default'), business_name text not null default 'Gailant Beauty',
   location text, primary_phone text, secondary_phone text, opening_hours text,
   home_service_surcharge numeric(12,2) not null default 0, deposit_percent numeric(5,2) not null default 30,
   social_proof_enabled boolean not null default true, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
@@ -92,5 +92,5 @@ insert into public.admin_users(user_id,email)
 select id,email from auth.users where lower(email)='gailantb@admin.com'
 on conflict(user_id) do update set email=excluded.email,active=true;
 
-insert into public.business_settings(id,business_name) values('default','Gailand Beauty') on conflict(id) do nothing;
+insert into public.business_settings(id,business_name) values('default','Gailant Beauty') on conflict(id) do nothing;
 commit;

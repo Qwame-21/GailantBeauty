@@ -1,6 +1,6 @@
-# Gailand Beauty
+# Gailant Beauty
 
-Premium salon, booking, retail and operations experience for Gailand Beauty in Abeka, Accra.
+Premium salon, booking, retail and operations experience for Gailant Beauty in Abeka, Accra.
 
 ## Project structure
 
