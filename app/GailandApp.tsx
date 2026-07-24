@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, MapPin, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Truck, X } from "lucide-react";
+import { ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, MapPin, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Star, Truck, X, Zap } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
 import { insertRecord, signInAdmin, trackReference, updateRecord } from "./lib/supabase";
 import { GAILAND_DATA_EVENT, loadCatalog, patchLocalRecord } from "./lib/gailand-store";
@@ -676,6 +676,9 @@ function TrackPage() {
     }
     setOrderTracking(false);
     setOrderSearched(true);
+    setTimeout(() => {
+      document.querySelector('.track-result, .track-not-found, .tracking-error')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const handleTrackBooking = async (e: React.FormEvent) => {
@@ -693,6 +696,9 @@ function TrackPage() {
     }
     setBookingTracking(false);
     setBookingSearched(true);
+    setTimeout(() => {
+      document.querySelector('.track-result, .track-not-found, .tracking-error')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const executePaystackModification = async (e: React.FormEvent) => {
@@ -1192,8 +1198,8 @@ function PoliciesPage() {
         <p>Talk to our team before booking if you need extra time, accessibility support or a special arrangement.</p>
 
         <div className="support-meta-details">
-          <span>🕐 Open Mon – Sat: 8:00 AM – 7:00 PM</span>
-          <span>⚡ Average response time: under 15 mins</span>
+          <span><Clock size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} /> Open Mon – Sat: 8:00 AM – 7:00 PM</span>
+          <span><Zap size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} /> Average response time: under 15 mins</span>
         </div>
 
         <div className="support-card-actions">
@@ -1619,6 +1625,9 @@ function Footer({ navigate }: { navigate: (v: View) => void }) {
       <a href={`https://wa.me/${BRAND.whatsapp}`} target="_blank" rel="noreferrer" aria-label="WhatsApp">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" /><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1" /></svg>
       </a>
+      <a href="https://tiktok.com/@gailantbeauty" target="_blank" rel="noreferrer" aria-label="TikTok">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+      </a>
     </div>
-  </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={BRAND.mapsUrl} target="_blank" rel="noreferrer" className="footer-location-link"><MapPin size={13} /> Get Directions on Google Maps</a><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div className="footer-hours"><small>OPENING HOURS</small><p><strong>Mon to Sat</strong><br />8:00am, 7:00pm</p><p><strong>Sunday</strong><br />12:00pm, 7:00pm</p></div></div><div className="footer-bottom"><span>© 2026 Gailant Beauty • {BRAND.rating}</span><button onClick={() => navigate("policies")}>Policies & terms</button><span>Beauty, crowned.</span></div></footer>;
+  </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={BRAND.mapsUrl} target="_blank" rel="noreferrer" className="footer-location-link"><MapPin size={13} /> Get Directions on Google Maps</a><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div className="footer-hours"><small>OPENING HOURS</small><p><strong>Mon to Sat</strong><br />8:00am, 7:00pm</p><p><strong>Sunday</strong><br />12:00pm, 7:00pm</p></div></div><div className="footer-bottom"><button onClick={() => navigate("policies")}>Policies & terms</button><span>© 2026 Gailant Beauty • {BRAND.rating}</span><span>Beauty, crowned.</span></div></footer>;
 }

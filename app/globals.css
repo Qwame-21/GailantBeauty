@@ -1870,4 +1870,323 @@
 }
 
 
+/* ═══════════════════════════════════════════════════════
+   GLOBAL: SQUARED FORM INPUTS (user directive)
+   ═══════════════════════════════════════════════════════ */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+select,
+textarea {
+  border-radius: 0px !important;
+}
+/* Restore non-form interactive elements that should stay rounded */
+.search-modal,
+.search-modal-inner,
+.bag-button,
+.pill,
+.nav-action-btn,
+.floating-trio-widget,
+.badge-status,
+.cart-count-badge,
+.star-select-btn,
+.filter-row button,
+.arch-pill,
+.glass-pill,
+.quantity {
+  border-radius: revert !important;
+}
 
+/* ═══════════════════════════════════════════════════════
+   TRACK PAGE: MINIMAL UNDERLINE TABS (not boxed container)
+   ═══════════════════════════════════════════════════════ */
+.track-subpage-tabs {
+  display: flex !important;
+  gap: 0 !important;
+  border: none !important;
+  background: none !important;
+  padding: 0 !important;
+  border-bottom: 1.5px solid #e2dfda !important;
+  margin-bottom: 32px !important;
+}
+.track-tab-btn {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 10px 22px 12px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: .06em !important;
+  color: #999 !important;
+  border-bottom: 2.5px solid transparent !important;
+  margin-bottom: -1.5px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: color 0.2s, border-color 0.2s !important;
+}
+.track-tab-btn:hover {
+  color: #333 !important;
+}
+.track-tab-btn.active {
+  color: #0a0a0a !important;
+  border-bottom-color: #0a0a0a !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+/* Policy tabs share the same underline style */
+.policy-tab-bar {
+  border-bottom: 1.5px solid #e2dfda !important;
+}
+.policy-tab-bar .track-tab-btn {
+  font-size: 12.5px !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TRACK PAGE: DESKTOP FORM — 2-col with visible gap
+   ═══════════════════════════════════════════════════════ */
+.track-form {
+  margin-top: 24px !important;
+}
+.track-form .two-col {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 28px !important;
+  margin-bottom: 20px !important;
+}
+.track-form label {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: .12em !important;
+  color: #666 !important;
+  text-transform: uppercase !important;
+}
+.track-form input {
+  height: 52px !important;
+  padding: 0 16px !important;
+  border: 1.5px solid #d5d3ce !important;
+  background: #fff !important;
+  font-size: 14px !important;
+  color: #111 !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.track-form input:focus {
+  border-color: #0a0a0a !important;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.07) !important;
+  outline: none !important;
+}
+@media(max-width:760px){
+  .track-form .two-col {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   REVIEW FORM: TEXTAREA & INPUTS CLEARLY BOXED
+   ═══════════════════════════════════════════════════════ */
+.modern-review-form textarea {
+  border: 1.5px solid #c8c5be !important;
+  background: #faf8f5 !important;
+  padding: 14px !important;
+  font-size: 14px !important;
+  min-height: 120px !important;
+  resize: vertical !important;
+  line-height: 1.6 !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.modern-review-form textarea:focus {
+  border-color: #111 !important;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.07) !important;
+  outline: none !important;
+}
+.modern-review-form input {
+  border: 1.5px solid #c8c5be !important;
+  height: 50px !important;
+  padding: 0 14px !important;
+  background: #faf8f5 !important;
+  font-size: 14px !important;
+}
+.modern-review-form input:focus {
+  border-color: #111 !important;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.07) !important;
+  outline: none !important;
+}
+.form-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+.review-form-card {
+  background: #ffffff !important;
+  border: 1px solid #e4e1db !important;
+  padding: 36px !important;
+}
+.review-form-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 14px !important;
+  margin-bottom: 24px !important;
+  padding-bottom: 20px !important;
+  border-bottom: 1px solid #f0ede8 !important;
+}
+.review-form-header h3 {
+  font: 500 26px/1.2 var(--display) !important;
+  margin: 0 0 4px !important;
+}
+.review-form-header p {
+  color: #777 !important;
+  font-size: 13px !important;
+  margin: 0 !important;
+}
+.review-success-banner {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  background: #edf6ee !important;
+  border: 1px solid #b8dbb8 !important;
+  padding: 18px 22px !important;
+  color: #276034 !important;
+  font-size: 13px !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   POLICIES PAGE: WHITE CARDS, UNIFIED SANS FONT
+   ═══════════════════════════════════════════════════════ */
+.faq-item {
+  background: #ffffff !important;
+  border: 1px solid #e4e1db !important;
+  border-radius: 0px !important;
+}
+.faq-item summary {
+  font-family: var(--sans) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+.faq-item p {
+  font-family: var(--sans) !important;
+  font-size: 13.5px !important;
+  color: #555 !important;
+  line-height: 1.7 !important;
+}
+.faq-grid {
+  margin: 16px 0 0 !important;
+  max-width: none !important;
+}
+.policy-section article {
+  background: #ffffff !important;
+  border-top: 1px solid #e4e1db !important;
+}
+.policy-section article p {
+  font-family: var(--sans) !important;
+}
+.policy-group h3,
+.faq-group h3 {
+  font: 500 30px var(--display) !important;
+  margin-bottom: 20px !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE HERO: FULL BLEED — 100svh, NO WHITE GAP AT TOP
+   ═══════════════════════════════════════════════════════ */
+@media(max-width:760px){
+  .hero {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100svh !important;
+    background: #0d0b09 !important;
+    padding: 0 !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+  .hero-image-panel {
+    position: absolute !important;
+    inset: 0 !important;
+    height: 100% !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    z-index: 0 !important;
+  }
+  .hero-img {
+    object-fit: cover !important;
+    object-position: 70% center !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .hero-fade {
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.15) 0%,
+      rgba(0,0,0,0.06) 28%,
+      rgba(0,0,0,0.32) 58%,
+      rgba(0,0,0,0.72) 80%,
+      rgba(0,0,0,0.88) 100%
+    ) !important;
+  }
+  .hero-copy {
+    position: relative !important;
+    z-index: 2 !important;
+    margin-top: auto !important;
+    padding: 0 22px calc(52px + env(safe-area-inset-bottom, 0px)) !important;
+    background: transparent !important;
+    color: #fff !important;
+    animation: fadeInUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.15s both !important;
+  }
+  .hero h1 {
+    color: #fff !important;
+    font-size: clamp(46px, 12vw, 68px) !important;
+    line-height: .88 !important;
+  }
+  .hero-text {
+    color: rgba(255,255,255,0.82) !important;
+    font-size: 15px !important;
+    margin: 20px 0 28px !important;
+  }
+  .hero-meta {
+    color: rgba(255,255,255,0.75) !important;
+    margin-top: 28px !important;
+  }
+  .hero-meta strong, .hero-meta span {
+    color: rgba(255,255,255,0.88) !important;
+  }
+  .hero-btn-primary {
+    background: #fff !important;
+    color: #0a0a0a !important;
+    border-color: #fff !important;
+  }
+  .hero-btn-primary:hover {
+    background: #f5f3ef !important;
+  }
+  .hero-btn-secondary {
+    background: rgba(255,255,255,0.13) !important;
+    color: #fff !important;
+    border-color: rgba(255,255,255,0.35) !important;
+  }
+  .hero-btn-location {
+    background: rgba(212,163,79,0.18) !important;
+    border-color: rgba(212,163,79,0.55) !important;
+    color: #f0c97a !important;
+  }
+
+  /* Hero top safe-area fill: match image tint so no white gap by battery */
+  .announcement {
+    position: relative;
+    z-index: 60;
+  }
+  /* Extend image behind system status bar */
+  .site-shell {
+    background: #0d0b09;
+  }
+}
+
+/* Fill safe-area-inset-top behind header / hero on notch/island phones */
+@supports (padding-top: env(safe-area-inset-top)) {
+  @media(max-width:760px){
+    .hero-image-panel {
+      top: calc(-1 * env(safe-area-inset-top, 0px)) !important;
+      height: calc(100% + env(safe-area-inset-top, 0px)) !important;
+    }
+  }
+}
