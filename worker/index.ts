@@ -2,6 +2,14 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 
+// Minimal stubs for Cloudflare globals — @cloudflare/workers-types is not installed.
+interface Fetcher {
+  fetch(input: RequestInfo, init?: RequestInit): Promise<Response>;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type D1Database = any;
+
 interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
