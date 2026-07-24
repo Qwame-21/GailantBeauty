@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
 :root { --black:#0a0a0a; --white:#fff; --cream:#ffffff; --gray:#777; --line:#deddd9; --display:var(--font-display),Georgia,serif; --sans:var(--font-sans),Arial,sans-serif; }
-*{box-sizing:border-box} html{scroll-behavior:smooth} body{--display:var(--font-display),Georgia,serif;--sans:var(--font-sans),Arial,sans-serif;margin:0;background:#fff;color:var(--black);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;} button,input,textarea,select{font:inherit}button{cursor:pointer;transition:all 0.25s cubic-bezier(0.16, 1, 0.3, 1)}.site-shell{min-height:100vh}
+*{box-sizing:border-box} html{scroll-behavior:smooth;overscroll-behavior-y:none} body{--display:var(--font-display),Georgia,serif;--sans:var(--font-sans),Arial,sans-serif;margin:0;background:#fff;color:var(--black);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;-webkit-overflow-scrolling:touch} button,input,textarea,select{font:inherit}button{cursor:pointer;transition:all 0.25s cubic-bezier(0.16, 1, 0.3, 1);touch-action:manipulation}.site-shell{min-height:100vh}
 .announcement{height:34px;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;gap:80px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
-.header{height:68px;background:#fff;border-bottom:1px solid #e8e7e3;position:sticky;top:0;z-index:50;transition:background 0.4s ease,border-color 0.4s ease,backdrop-filter 0.4s ease,box-shadow 0.4s ease}
+.header{height:68px;background:#fff;border-bottom:1px solid #e8e7e3;position:sticky;top:0;z-index:50;transition:background 0.4s ease,border-color 0.4s ease,backdrop-filter 0.4s ease,box-shadow 0.4s ease;will-change:transform}
+.bag-btn{position:relative}
+.cart-count-badge{position:absolute;top:-6px;right:-6px;display:grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border:2px solid currentColor;border-radius:999px;background:#17100b;color:#fff;font-size:9px;font-weight:800;line-height:1}
+.header--scrolled .cart-count-badge{background:#0a0a0a;color:#fff}
 /* Transparent hero nav state */
 .header--transparent{background:transparent;border-color:transparent;backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px)}
 .header--transparent .wordmark{color:hsl(42,60%,38%)}
@@ -1134,9 +1137,9 @@
 .search-modal-input{font-size:18px;min-height:34px}
 .search-suggestions{padding:22px 24px 26px}
 .search-suggestions>small{display:block;margin-bottom:13px;color:#85786a;font-size:9px;font-weight:800;letter-spacing:.16em}
-.search-suggestions>div{display:flex;flex-wrap:wrap;gap:8px}
-.search-suggestions button{padding:9px 14px;border:1px solid #ddd1c3;border-radius:999px;background:#f8f3ec;color:#241b15;font-size:11px;transition:.2s}
-.search-suggestions button:hover{transform:translateY(-2px);background:#1b1511;color:#fff;border-color:#1b1511}
+.search-popular-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.search-popular-list li button{width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid #e8e1d7;border-radius:10px;background:#fbf8f3;color:#241b15;font-size:13px;font-weight:600;transition:all .2s ease}
+.search-popular-list li button:hover{background:#1b1511;color:#fff;border-color:#1b1511;padding-left:20px}
 .search-result-row{min-height:62px;padding:15px 24px}
 .search-result-row:hover{padding-left:30px;background:#f5eee5}
 
@@ -1344,18 +1347,19 @@
     font-size:13px;
     line-height:1.55;
   }
-  .hero-editorial .hero-actions{width:100%;gap:10px;align-items:stretch}
+  .hero-editorial .hero-actions{width:100%;gap:10px;align-items:flex-start}
   .site-shell .hero-editorial .hero-btn-primary,
   .site-shell .hero-editorial .hero-btn-secondary{
-    width:100%;
-    min-height:50px;
-    padding:12px 20px;
-    justify-content:flex-start;
-    font-size:10px;
+    width:60%;
+    max-width:240px;
+    min-height:46px;
+    padding:10px 16px;
+    justify-content:space-between;
+    font-size:9.5px;
     font-weight:700;
     letter-spacing:.08em;
     border:1px solid rgba(255,255,255,.28);
-    background:rgba(18,12,8,.72);
+    background:rgba(18,12,8,.78);
     color:#fff;
     backdrop-filter:blur(16px) saturate(130%);
     -webkit-backdrop-filter:blur(16px) saturate(130%);
@@ -1660,6 +1664,53 @@
   .ref-cart-drawer{width:100vw}
   .ref-cart-header,.ref-cart-lines,.ref-cart-footer,.ref-checkout-form{padding-left:20px!important;padding-right:20px!important}
   .ref-footer-buttons{grid-template-columns:85px 1fr}
+
+  /* Prevent Mobile Input Zoom (iOS triggers zoom on <16px inputs) */
+  input, select, textarea,
+  .search-modal-input,
+  .track-card form input,
+  .track-form input,
+  .flow-form input, .flow-form select, .flow-form textarea,
+  .cart-checkout-form input, .cart-checkout-form textarea,
+  .ref-form-fields input, .ref-form-fields select, .ref-form-fields textarea,
+  .shop-search-label input {
+    font-size: 16px !important;
+  }
+
+  /* Fixed Search Modal on Mobile (does not shift when virtual keyboard opens) */
+  .modal-overlay:has(.search-modal) {
+    align-items: flex-start !important;
+    padding: 12px !important;
+  }
+  .search-modal {
+    width: 100% !important;
+    position: fixed !important;
+    top: max(12px, env(safe-area-inset-top, 12px)) !important;
+    left: 12px !important;
+    right: 12px !important;
+    margin: 0 auto !important;
+    max-height: calc(100vh - 24px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  /* Safe Area / Status Bar Fill for full bleed header */
+  .header {
+    padding-top: env(safe-area-inset-top, 0px);
+    height: calc(76px + env(safe-area-inset-top, 0px));
+  }
+  .header.header--transparent .nav-wrap {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Hamburger & Navigation Isolation during Cart overlay */
+  body:has(.cart-drawer) .menu-button,
+  body:has(.cart-drawer) .header {
+    pointer-events: none !important;
+  }
+  .cart-drawer, .overlay {
+    pointer-events: auto !important;
+  }
 }
 
 

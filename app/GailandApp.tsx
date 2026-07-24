@@ -156,7 +156,16 @@ function SearchModal({ close, navigate }: { close: () => void; navigate: (v: Vie
         </div>
         {!term && <div className="search-suggestions">
           <small>POPULAR SEARCHES</small>
-          <div>{["Nails", "Hair", "Lashes", "Makeup", "Wigs"].map(item => <button key={item} onClick={() => setQ(item)}>{item}</button>)}</div>
+          <ul className="search-popular-list">
+            {["Nails", "Hair", "Lashes", "Makeup", "Wigs"].map(item => (
+              <li key={item}>
+                <button type="button" onClick={() => setQ(item)}>
+                  <span>{item}</span>
+                  <ArrowRight size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>}
         {results.length > 0 && <div className="search-results">
           {results.map((r, i) => <button key={i} className="search-result-row" onClick={r.action}>
