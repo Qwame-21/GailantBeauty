@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - codex/storefront-refinement
+      - main
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.ref }}
