@@ -75,14 +75,14 @@
 
 /* ─── FAQ Accordion & Review Section ─── */
 .faq-grid{display:flex;flex-direction:column;gap:14px;max-width:800px;margin:30px auto 0}
-.faq-item{border:1px solid #deddd9;border-radius:8px;background:#fff;overflow:hidden;transition:all 0.25s ease}
-.faq-item summary{padding:18px 22px;font-weight:700;font-size:14px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.faq-item{border:1px solid #e4dbcf;border-radius:8px;background:#fff;overflow:hidden;transition:all 0.25s ease}
+.faq-item summary{padding:18px 22px;font:700 14px/1.4 var(--sans);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
 .faq-item summary::-webkit-details-marker{display:none}
-.faq-item p{padding:0 22px 20px;color:#555;margin:0;font-size:13.5px;line-height:1.7}
+.faq-item p{padding:0 22px 20px;color:#555;margin:0;font:400 13.5px/1.7 var(--sans)}
 
-.review-form-card{background:#fff;border:1px solid #deddd9;padding:32px;border-radius:8px;margin-top:40px}
-.review-form-card h3{font:500 28px var(--display);margin:0 0 10px}
-.review-form-card p{color:#666;font-size:13px;margin:0 0 20px}
+.review-form-card{background:#fff;border:1px solid #e4dbcf;padding:36px;border-radius:12px;margin-top:0}
+.review-form-card h3{font:500 28px/1.2 var(--display);margin:0 0 10px;color:#1c140d}
+.review-form-card p{color:#66594d;font:400 13px/1.6 var(--sans);margin:0 0 20px}
 
 /* Global utility: eyebrow label */
 .eyebrow{font-size:11px;line-height:1.2;font-weight:700;letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin:0 0 23px}
@@ -1073,21 +1073,21 @@
 .track-section aside{border-radius:22px;background:linear-gradient(150deg,#19130f,#302116 70%,#5c3d1e);box-shadow:0 22px 60px rgba(24,16,10,.2)}
 .track-section aside a{border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:12px 18px}
 
-.policy-section{max-width:1320px;margin:0 auto;padding:72px 6vw 110px;gap:24px;align-items:start;background:linear-gradient(135deg,#fbf8f3 0%,#f1e9dd 100%)}
-.policy-section>div{min-width:0;padding:34px;border:1px solid #ded4c7;border-radius:22px;background:rgba(255,255,255,.92);box-shadow:0 22px 60px rgba(57,41,24,.09)}
+.policy-section{max-width:1320px;margin:0 auto;padding:72px 6vw 110px;gap:24px;align-items:start;background:#fff}
+.policy-section>div{min-width:0;padding:34px;border:1px solid #e4dbcf;border-radius:22px;background:#fff;box-shadow:0 12px 36px rgba(0,0,0,.04)}
 .policy-tab-bar{gap:8px!important;margin-bottom:28px!important;padding-bottom:16px!important;overflow-x:auto;border-bottom:1px solid #e2d8cb!important}
 .policy-tab-bar .pill{white-space:nowrap;border-radius:999px}
-.policy-section article{display:grid;grid-template-columns:48px minmax(0,1fr);gap:18px;margin-bottom:10px;padding:22px;border:1px solid #e4dbcf;border-radius:15px;background:#faf7f2}
+.policy-section article{display:grid;grid-template-columns:48px minmax(0,1fr);gap:18px;margin-bottom:10px;padding:22px;border:1px solid #e4dbcf;border-radius:15px;background:#fff}
 .policy-section article span{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;color:#805719;background:#efe0c8}
-.policy-section article p{font-size:clamp(17px,1.45vw,21px);line-height:1.45}
+.policy-section article p{font:400 clamp(15px,1.3vw,18px)/1.55 var(--sans)}
 .policy-section aside{border-radius:22px;background:linear-gradient(150deg,#19130f,#302116 70%,#5c3d1e);box-shadow:0 22px 60px rgba(24,16,10,.2)}
-.faq-item,.review-form-card{border:1px solid #e4dbcf;border-radius:15px;background:#faf7f2}
+.faq-item,.review-form-card{border:1px solid #e4dbcf;border-radius:12px;background:#fff}
 
 @media(max-width:700px){
   .wordmark img{transform:scale(1.18)}
-  .hero-editorial{min-height:1050px;background:#120b06}
+  .hero-editorial{min-height:clamp(680px, 100svh, 1100px) !important;background:#120b06;position:relative}
   .hero-editorial .hero-image-panel:after{background:linear-gradient(180deg,rgba(9,6,4,.05) 20%,rgba(9,6,4,.18) 42%,rgba(9,6,4,.88) 75%,#120b06 100%)}
-  .hero-editorial .hero-copy{min-height:1050px;padding:390px 24px 302px;justify-content:flex-start}
+  .hero-editorial .hero-copy{min-height:clamp(680px, 100svh, 1100px) !important;padding:115px 24px 210px !important;justify-content:flex-start}
   .hero-editorial .hero-copy h1{font-size:clamp(48px,14vw,61px);line-height:.98;letter-spacing:-.045em}
   .hero-editorial .hero-text{font-size:15px;line-height:1.62;margin:23px 0 25px;max-width:340px}
   .hero-editorial .hero-actions{width:100%;gap:10px}
@@ -1219,8 +1219,8 @@
   .header.header--transparent{
     position:absolute;
     inset:0 0 auto;
-    height:76px;
-    background:transparent;
+    height:calc(76px + env(safe-area-inset-top, 0px));
+    background:linear-gradient(to bottom, rgba(18,11,7,0.85) 0%, rgba(18,11,7,0.4) 50%, rgba(18,11,7,0) 100%) !important;
     border-color:transparent;
     box-shadow:none;
     backdrop-filter:none;
@@ -1442,17 +1442,17 @@
 }
 
 /* Track Page Rebuild — Subpage Tabs & Form */
-.track-subpage-tabs{display:flex;gap:12px;margin-bottom:24px;border-bottom:1px solid #e5dbcd;padding-bottom:12px}
-.track-tab-btn{display:inline-flex;align-items:center;gap:9px;padding:12px 22px;border:1px solid #dfd3c3;border-radius:999px;background:#f7f1e8;color:#55483b;font-weight:700;font-size:13px;transition:all .2s ease;cursor:pointer}
-.track-tab-btn:hover{background:#efe4d3;color:#1d150e}
-.track-tab-btn.active{background:#231911;color:#fff;border-color:#231911;box-shadow:0 6px 18px rgba(35,25,17,.15)}
+.track-subpage-tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid #e5dbcd;padding-bottom:0}
+.track-tab-btn{display:inline-flex;align-items:center;gap:9px;padding:14px 20px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#857769;font-weight:700;font-size:13px;letter-spacing:.02em;transition:all .2s ease;cursor:pointer;margin-bottom:-2px}
+.track-tab-btn:hover{color:#1d150e}
+.track-tab-btn.active{color:#1c140d;border-bottom-color:#1c140d;background:transparent}
 
 .track-subpage{display:flex;flex-direction:column;gap:20px}
 .track-intro{color:#66594c;font-size:14px;line-height:1.55;margin:0 0 4px}
-.track-form{display:flex;flex-direction:column;gap:16px;background:#faf6f0;padding:24px;border-radius:16px;border:1px solid #ebd9c5}
+.track-form{display:flex;flex-direction:column;gap:16px;background:#fff;padding:24px;border-radius:0;border:1px solid #e4dbcf}
 .track-form label{display:flex;flex-direction:column;gap:7px;color:#3b3127;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.track-form input{width:100%;min-height:48px;padding:12px 16px;border:1px solid #d8c9b7;border-radius:10px;background:#fff;color:#1c140d;font-size:15px;outline:none;transition:border-color .2s}
-.track-form input:focus{border-color:#8e672c;box-shadow:0 0 0 3px rgba(142,103,44,.12)}
+.track-form input{width:100%;min-height:54px;padding:14px 16px;border:1px solid #d2d0c9;border-radius:0;background:#fff;color:#1c140d;font-size:15px;outline:none;transition:border-color .2s}
+.track-form input:focus{border-color:#111;box-shadow:0 0 0 3px rgba(0,0,0,.06)}
 
 /* Track Result Card */
 .track-result{display:flex;flex-direction:column;gap:24px;padding:28px;border-radius:18px;background:#fff;border:1px solid #e7ddd1;box-shadow:0 12px 36px rgba(40,28,18,.06)}
@@ -1770,13 +1770,14 @@
   line-height: 1.5 !important;
 }
 .cart-shop-cta {
-  padding: 12px 24px !important;
-  font-size: 11px !important;
+  padding: 9px 18px !important;
+  font-size: 10px !important;
   border-radius: 999px !important;
   background: #1c140d !important;
   color: #fff !important;
   border: 1px solid #1c140d !important;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.10) !important;
+  min-height: 0 !important;
 }
 .cart-shop-cta:hover {
   background: #c89534 !important;
@@ -1845,6 +1846,8 @@
   border-radius: 0 !important;
   box-shadow: none !important;
   flex: 1 !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 .squared-textarea {
   border-radius: 0px !important;
@@ -1853,6 +1856,96 @@
 .squared-textarea:focus {
   border-color: #111 !important;
   box-shadow: 0 0 0 2px rgba(0,0,0,0.08) !important;
+}
+
+/* ─── Site-wide Square Input Corners ─── */
+input, select, textarea {
+  border-radius: 0 !important;
+}
+
+/* ─── Track Form Desktop Spacing ─── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media(min-width: 761px) {
+  .track-form .two-col {
+    gap: 28px;
+  }
+  .track-form input {
+    min-height: 58px;
+    font-size: 16px;
+  }
+}
+
+/* ─── Review Form Uplift ─── */
+.review-form-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e4dbcf;
+}
+.review-form-header h3 {
+  font: 500 26px/1.2 var(--font-display) !important;
+  color: #1c140d !important;
+  margin: 0 0 4px !important;
+}
+.review-form-header p {
+  color: #66594d !important;
+  font-size: 13px !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
+}
+.modern-review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.modern-review-form input,
+.modern-review-form textarea {
+  width: 100%;
+  min-height: 50px;
+  padding: 14px 16px;
+  border: 1px solid #d2d0c9 !important;
+  border-radius: 0 !important;
+  background: #fff;
+  color: #1c140d;
+  font-size: 14px;
+  outline: none;
+  transition: border-color .2s;
+}
+.modern-review-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+.modern-review-form input:focus,
+.modern-review-form textarea:focus {
+  border-color: #111 !important;
+  box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+}
+.rating-select-group {
+  margin-bottom: 4px;
+}
+.star-rating-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.review-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: #e6f4ea;
+  border: 1px solid #b7e1cd;
+  border-radius: 0;
+  color: #137333;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* Footer location link */
@@ -1870,323 +1963,4 @@
 }
 
 
-/* ═══════════════════════════════════════════════════════
-   GLOBAL: SQUARED FORM INPUTS (user directive)
-   ═══════════════════════════════════════════════════════ */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
-select,
-textarea {
-  border-radius: 0px !important;
-}
-/* Restore non-form interactive elements that should stay rounded */
-.search-modal,
-.search-modal-inner,
-.bag-button,
-.pill,
-.nav-action-btn,
-.floating-trio-widget,
-.badge-status,
-.cart-count-badge,
-.star-select-btn,
-.filter-row button,
-.arch-pill,
-.glass-pill,
-.quantity {
-  border-radius: revert !important;
-}
 
-/* ═══════════════════════════════════════════════════════
-   TRACK PAGE: MINIMAL UNDERLINE TABS (not boxed container)
-   ═══════════════════════════════════════════════════════ */
-.track-subpage-tabs {
-  display: flex !important;
-  gap: 0 !important;
-  border: none !important;
-  background: none !important;
-  padding: 0 !important;
-  border-bottom: 1.5px solid #e2dfda !important;
-  margin-bottom: 32px !important;
-}
-.track-tab-btn {
-  border: none !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  padding: 10px 22px 12px !important;
-  font-size: 11.5px !important;
-  font-weight: 700 !important;
-  letter-spacing: .06em !important;
-  color: #999 !important;
-  border-bottom: 2.5px solid transparent !important;
-  margin-bottom: -1.5px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  cursor: pointer !important;
-  transition: color 0.2s, border-color 0.2s !important;
-}
-.track-tab-btn:hover {
-  color: #333 !important;
-}
-.track-tab-btn.active {
-  color: #0a0a0a !important;
-  border-bottom-color: #0a0a0a !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-/* Policy tabs share the same underline style */
-.policy-tab-bar {
-  border-bottom: 1.5px solid #e2dfda !important;
-}
-.policy-tab-bar .track-tab-btn {
-  font-size: 12.5px !important;
-}
-
-/* ═══════════════════════════════════════════════════════
-   TRACK PAGE: DESKTOP FORM — 2-col with visible gap
-   ═══════════════════════════════════════════════════════ */
-.track-form {
-  margin-top: 24px !important;
-}
-.track-form .two-col {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 28px !important;
-  margin-bottom: 20px !important;
-}
-.track-form label {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  font-size: 9px !important;
-  font-weight: 700 !important;
-  letter-spacing: .12em !important;
-  color: #666 !important;
-  text-transform: uppercase !important;
-}
-.track-form input {
-  height: 52px !important;
-  padding: 0 16px !important;
-  border: 1.5px solid #d5d3ce !important;
-  background: #fff !important;
-  font-size: 14px !important;
-  color: #111 !important;
-  transition: border-color 0.2s, box-shadow 0.2s !important;
-}
-.track-form input:focus {
-  border-color: #0a0a0a !important;
-  box-shadow: 0 0 0 3px rgba(0,0,0,0.07) !important;
-  outline: none !important;
-}
-@media(max-width:760px){
-  .track-form .two-col {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════
-   REVIEW FORM: TEXTAREA & INPUTS CLEARLY BOXED
-   ═══════════════════════════════════════════════════════ */
-.modern-review-form textarea {
-  border: 1.5px solid #c8c5be !important;
-  background: #faf8f5 !important;
-  padding: 14px !important;
-  font-size: 14px !important;
-  min-height: 120px !important;
-  resize: vertical !important;
-  line-height: 1.6 !important;
-  transition: border-color 0.2s, box-shadow 0.2s !important;
-}
-.modern-review-form textarea:focus {
-  border-color: #111 !important;
-  box-shadow: 0 0 0 3px rgba(0,0,0,0.07) !important;
-  outline: none !important;
-}
-.modern-review-form input {
-  border: 1.5px solid #c8c5be !important;
-  height: 50px !important;
-  padding: 0 14px !important;
-  background: #faf8f5 !important;
-  font-size: 14px !important;
-}
-.modern-review-form input:focus {
-  border-color: #111 !important;
-  box-shadow: 0 0 0 3px rgba(0,0,0,0.07) !important;
-  outline: none !important;
-}
-.form-field {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 6px !important;
-}
-.review-form-card {
-  background: #ffffff !important;
-  border: 1px solid #e4e1db !important;
-  padding: 36px !important;
-}
-.review-form-header {
-  display: flex !important;
-  align-items: flex-start !important;
-  gap: 14px !important;
-  margin-bottom: 24px !important;
-  padding-bottom: 20px !important;
-  border-bottom: 1px solid #f0ede8 !important;
-}
-.review-form-header h3 {
-  font: 500 26px/1.2 var(--display) !important;
-  margin: 0 0 4px !important;
-}
-.review-form-header p {
-  color: #777 !important;
-  font-size: 13px !important;
-  margin: 0 !important;
-}
-.review-success-banner {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  background: #edf6ee !important;
-  border: 1px solid #b8dbb8 !important;
-  padding: 18px 22px !important;
-  color: #276034 !important;
-  font-size: 13px !important;
-}
-
-/* ═══════════════════════════════════════════════════════
-   POLICIES PAGE: WHITE CARDS, UNIFIED SANS FONT
-   ═══════════════════════════════════════════════════════ */
-.faq-item {
-  background: #ffffff !important;
-  border: 1px solid #e4e1db !important;
-  border-radius: 0px !important;
-}
-.faq-item summary {
-  font-family: var(--sans) !important;
-  font-size: 14px !important;
-  font-weight: 700 !important;
-}
-.faq-item p {
-  font-family: var(--sans) !important;
-  font-size: 13.5px !important;
-  color: #555 !important;
-  line-height: 1.7 !important;
-}
-.faq-grid {
-  margin: 16px 0 0 !important;
-  max-width: none !important;
-}
-.policy-section article {
-  background: #ffffff !important;
-  border-top: 1px solid #e4e1db !important;
-}
-.policy-section article p {
-  font-family: var(--sans) !important;
-}
-.policy-group h3,
-.faq-group h3 {
-  font: 500 30px var(--display) !important;
-  margin-bottom: 20px !important;
-}
-
-/* ═══════════════════════════════════════════════════════
-   MOBILE HERO: FULL BLEED — 100svh, NO WHITE GAP AT TOP
-   ═══════════════════════════════════════════════════════ */
-@media(max-width:760px){
-  .hero {
-    display: flex !important;
-    flex-direction: column !important;
-    min-height: 100svh !important;
-    background: #0d0b09 !important;
-    padding: 0 !important;
-    position: relative !important;
-    overflow: hidden !important;
-  }
-  .hero-image-panel {
-    position: absolute !important;
-    inset: 0 !important;
-    height: 100% !important;
-    max-height: none !important;
-    min-height: 0 !important;
-    z-index: 0 !important;
-  }
-  .hero-img {
-    object-fit: cover !important;
-    object-position: 70% center !important;
-    width: 100% !important;
-    height: 100% !important;
-  }
-  .hero-fade {
-    background: linear-gradient(
-      to bottom,
-      rgba(0,0,0,0.15) 0%,
-      rgba(0,0,0,0.06) 28%,
-      rgba(0,0,0,0.32) 58%,
-      rgba(0,0,0,0.72) 80%,
-      rgba(0,0,0,0.88) 100%
-    ) !important;
-  }
-  .hero-copy {
-    position: relative !important;
-    z-index: 2 !important;
-    margin-top: auto !important;
-    padding: 0 22px calc(52px + env(safe-area-inset-bottom, 0px)) !important;
-    background: transparent !important;
-    color: #fff !important;
-    animation: fadeInUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.15s both !important;
-  }
-  .hero h1 {
-    color: #fff !important;
-    font-size: clamp(46px, 12vw, 68px) !important;
-    line-height: .88 !important;
-  }
-  .hero-text {
-    color: rgba(255,255,255,0.82) !important;
-    font-size: 15px !important;
-    margin: 20px 0 28px !important;
-  }
-  .hero-meta {
-    color: rgba(255,255,255,0.75) !important;
-    margin-top: 28px !important;
-  }
-  .hero-meta strong, .hero-meta span {
-    color: rgba(255,255,255,0.88) !important;
-  }
-  .hero-btn-primary {
-    background: #fff !important;
-    color: #0a0a0a !important;
-    border-color: #fff !important;
-  }
-  .hero-btn-primary:hover {
-    background: #f5f3ef !important;
-  }
-  .hero-btn-secondary {
-    background: rgba(255,255,255,0.13) !important;
-    color: #fff !important;
-    border-color: rgba(255,255,255,0.35) !important;
-  }
-  .hero-btn-location {
-    background: rgba(212,163,79,0.18) !important;
-    border-color: rgba(212,163,79,0.55) !important;
-    color: #f0c97a !important;
-  }
-
-  /* Hero top safe-area fill: match image tint so no white gap by battery */
-  .announcement {
-    position: relative;
-    z-index: 60;
-  }
-  /* Extend image behind system status bar */
-  .site-shell {
-    background: #0d0b09;
-  }
-}
-
-/* Fill safe-area-inset-top behind header / hero on notch/island phones */
-@supports (padding-top: env(safe-area-inset-top)) {
-  @media(max-width:760px){
-    .hero-image-panel {
-      top: calc(-1 * env(safe-area-inset-top, 0px)) !important;
-      height: calc(100% + env(safe-area-inset-top, 0px)) !important;
-    }
-  }
-}
