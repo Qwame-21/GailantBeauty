@@ -133,7 +133,7 @@ export function GailantApp() {
     <Footer navigate={navigate} />
     <FloatingTrioWidget cartCount={count} favoritesCount={favorites.length} openCart={() => setCartOpen(true)} navigate={navigate} />
     {searchOpen && <SearchModal close={() => setSearchOpen(false)} navigate={(v) => { setSearchOpen(false); navigate(v); }} />}
-    {cartOpen && <CartDrawer cart={cart} close={() => setCartOpen(false)} update={updateCart} complete={(message) => { setCartOpen(false); setCart([]); setNotice(message); }} />}
+    {cartOpen && <CartDrawer cart={cart} close={() => setCartOpen(false)} update={updateCart} complete={(message) => { setCartOpen(false); setCart([]); setNotice(message); }} navigate={navigate} />}
     {modal && <FlowModal modal={modal} close={() => setModal(null)} complete={(message) => { setModal(null); setNotice(message); }} />}
     {notice && <div className="toast" role="status" aria-live="polite"><Check size={17} />{notice}<button aria-label="Close notification" onClick={() => setNotice("")}><X size={16} /></button></div>}
   </div>;
@@ -1205,7 +1205,7 @@ function PoliciesPage() {
   </>;
 }
 
-function CartDrawer({ cart, close, update, complete }: { cart: CartLine[]; close: () => void; update: (id: string, n: number) => void; complete: (message: string) => void }) {
+function CartDrawer({ cart, close, update, complete, navigate }: { cart: CartLine[]; close: () => void; update: (id: string, n: number) => void; complete: (message: string) => void; navigate: (v: View) => void }) {
   const [step, setStep] = useState<"bag" | "checkout">("bag");
   const [loading, setLoading] = useState(false);
   const [countryCode, setCountryCode] = useState("+233");
