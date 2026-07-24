@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Truck, User, X } from "lucide-react";
-import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type OrderItem, type Product, type Service, type TrackingRecord } from "./constants";
+import { ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Truck, X } from "lucide-react";
+import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
 import { insertRecord, signInAdmin, trackReference, updateRecord } from "./lib/supabase";
 import { GAILAND_DATA_EVENT, loadCatalog, patchLocalRecord } from "./lib/gailand-store";
 import { openPaystackPayment } from "./lib/paystack";

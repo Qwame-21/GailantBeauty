@@ -40,7 +40,7 @@ const worker = {
           }
           return fetch(assetUrl);
         },
-        transformImage: async (body, { width, format, quality }) => {
+        transformImage: async (_body, { width: _width, format: _format, quality: _quality }) => {
           // Cloudflare Image Resizing: pass cf.image options on a subrequest.
           // The IMAGES binding does not exist — transformations are handled via
           // the cf.image fetch option on Workers that have Image Resizing enabled.
