@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Check, ChevronDown, Heart, Menu, Minus, Package, Plus, Search, ShoppingBag, X } from "lucide-react";
-import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
-import { insertRecord, signInAdmin, trackReference } from "./lib/supabase";
-import { GAILAND_DATA_EVENT, loadCatalog } from "./lib/gailand-store";
+import { ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Truck, User, X } from "lucide-react";
+import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type OrderItem, type Product, type Service, type TrackingRecord } from "./constants";
+import { insertRecord, signInAdmin, trackReference, updateRecord } from "./lib/supabase";
+import { GAILAND_DATA_EVENT, loadCatalog, patchLocalRecord } from "./lib/gailand-store";
+import { openPaystackPayment } from "./lib/paystack";
 
 type View = "home" | "services" | "shop" | "wishlist" | "track" | "policies";
 type CartLine = Product & { quantity: number };
@@ -194,13 +195,25 @@ function CrownMark({ onHome }: { onHome?: () => void }) { return <button classNa
 function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, favoritesCount, openCart, openSearch }: { view: View; navigate: (v: View, f?: string) => void; menuOpen: boolean; setMenuOpen: (v: boolean) => void; cartCount: number; favoritesCount: number; openCart: () => void; openSearch: () => void }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const links: [View, string][] = [["services", "SERVICES"], ["shop", "SHOP"], ["track", "TRACK"], ["policies", "POLICIES"]];
 
   useEffect(() => {
+    let lastScrollY = window.scrollY;
     const onScroll = () => {
+      const currentScrollY = window.scrollY;
       const hero = document.querySelector<HTMLElement>(".hero, .page-hero");
       const heroBottom = hero ? hero.offsetTop + hero.offsetHeight : 128;
-      setScrolled(window.scrollY >= heroBottom - 68);
+      
+      setScrolled(currentScrollY >= heroBottom - 68);
+
+      // Hide on scroll-down after 120px, show on scroll-up
+      if (currentScrollY > 120 && currentScrollY > lastScrollY && !menuOpen) {
+        setHidden(true);
+      } else {
+        setHidden(false);
+      }
+      lastScrollY = currentScrollY;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
@@ -209,13 +222,11 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, favoritesCou
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, []);
+  }, [menuOpen]);
 
-  const isHeroNav = !menuOpen;
-  const headerClass = `header${isHeroNav ? (scrolled ? " header--scrolled" : " header--transparent") : ""}`;
+  const headerClass = `header${scrolled ? " header--scrolled" : " header--transparent"}${hidden ? " header--hidden" : ""}${menuOpen ? " header--menu-open" : ""}`;
 
   return <header className={headerClass}><div className="nav-wrap">
-    <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu" aria-expanded={menuOpen} aria-controls="primary-navigation">{menuOpen ? <X /> : <Menu />}</button>
     <CrownMark onHome={() => navigate("home")} />
     <nav id="primary-navigation" className={menuOpen ? "nav-links open" : "nav-links"} aria-label="Primary navigation">
       {links.map(([id, label]) => (
@@ -243,6 +254,7 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, favoritesCou
       <button className="nav-action-btn bag-btn" onClick={openCart} aria-label={`Bag with ${cartCount} items`}>
         <ShoppingBag size={16} />
         <span className="btn-label">BAG ({cartCount})</span>
+        {cartCount > 0 && <span className="cart-count-badge">{cartCount}</span>}
       </button>
       <button className="search-icon-btn wishlist-icon-btn" onClick={() => navigate("wishlist")} aria-label="Open wishlist">
         <Heart size={17} />
@@ -285,6 +297,7 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, favoritesCou
           </div>
         )}
       </div>
+      <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu" aria-expanded={menuOpen} aria-controls="primary-navigation">{menuOpen ? <X /> : <Menu />}</button>
     </div>
   </div></header>;
 }
@@ -409,8 +422,8 @@ function ServiceCard({ service, index, book, isFav, toggleFav }: { service: Serv
       <strong>{service.category.substring(0, 1)}</strong>
       <small>{service.category}</small>
       {toggleFav && (
-        <button className="fav-toggle-btn" onClick={() => toggleFav(service.id)} aria-label="Toggle wishlist" style={{ position: "absolute", top: 18, right: 18, background: "rgba(255,255,255,0.85)", border: 0, borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 5 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? "#0a0a0a" : "none"} stroke="currentColor" strokeWidth="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        <button className={`product-action-glass ${isFav ? "active" : ""}`} onClick={() => toggleFav(service.id)} aria-label="Toggle wishlist" style={{ position: "absolute", top: 14, right: 14, zIndex: 5 }}>
+          <Heart size={16} fill={isFav ? "currentColor" : "none"} />
         </button>
       )}
     </div>
@@ -424,19 +437,80 @@ function ServiceCard({ service, index, book, isFav, toggleFav }: { service: Serv
 }
 
 function ProductCard({ product, add, isFav, toggleFav }: { product: Product; add: (p: Product) => void; isFav?: boolean; toggleFav?: (id: string) => void }) { 
-  return <article className="product-card">
-    <div className={`product-visual ${product.tone}`}>
-      {product.badge && <span className="badge">{product.badge}</span>}
-      {toggleFav && (
-        <button className="fav-toggle-btn" onClick={() => toggleFav(product.id)} aria-label="Toggle wishlist" style={{ position: "absolute", top: 18, right: 18, background: "rgba(255,255,255,0.85)", border: 0, borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 5 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? "#0a0a0a" : "none"} stroke="currentColor" strokeWidth="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        </button>
-      )}
-      <span className="product-shape">G</span>
-      <button className="quick-add" onClick={() => add(product)} aria-label={`Add ${product.name} to cart`}><Plus /></button>
-    </div>
-    <div className="product-info"><span>{product.category}</span><h3>{product.name}</h3><p>{product.description}</p><strong>{money(product.price)}</strong></div>
-  </article>; 
+  const [expanded, setExpanded] = useState(false);
+
+  return <>
+    <article className="product-card" onClick={() => setExpanded(true)} style={{ cursor: "pointer" }}>
+      <div className={`product-visual ${product.tone}`}>
+        <span className="product-shape">G</span>
+        
+        {/* Right vertical action stack (+ and heart) with identical glass style */}
+        <div className="product-actions-stack" onClick={(e) => e.stopPropagation()}>
+          {toggleFav && (
+            <button 
+              className={`product-action-glass ${isFav ? "active" : ""}`} 
+              onClick={() => toggleFav(product.id)} 
+              aria-label="Toggle wishlist"
+            >
+              <Heart size={16} fill={isFav ? "currentColor" : "none"} />
+            </button>
+          )}
+          <button 
+            className="product-action-glass" 
+            onClick={() => add(product)} 
+            aria-label={`Add ${product.name} to cart`}
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      </div>
+      <div className="product-info">
+        <div className="product-card-header-row">
+          <span className="category">{product.category}</span>
+          {product.badge && <span className="product-inline-badge">{product.badge}</span>}
+        </div>
+        <h3>{product.name}</h3>
+        <p>{product.description}</p>
+        <strong>{money(product.price)}</strong>
+      </div>
+    </article>
+
+    {/* Product Quick View Drawer */}
+    {expanded && (
+      <div className="overlay quickview-overlay" onMouseDown={() => setExpanded(false)}>
+        <aside className="quickview-drawer" onMouseDown={e => e.stopPropagation()}>
+          <button className="ref-close-btn quickview-close" onClick={() => setExpanded(false)} aria-label="Close panel"><X size={18} /></button>
+          
+          <div className={`quickview-image-container ${product.tone}`}>
+            <span className="product-shape" aria-hidden="true">G</span>
+            {product.badge && <span className="product-inline-badge quickview-badge">{product.badge}</span>}
+          </div>
+
+          <div className="quickview-body">
+            <span className="quickview-category">{product.category}</span>
+            <h2 className="quickview-title">{product.name}</h2>
+            <p className="quickview-desc">{product.description}</p>
+            
+            <div className="quickview-price-block">
+              <strong className="quickview-price">{money(product.price)}</strong>
+              <small className="quickview-tax-note">Tax included • Studio shipping calculated at checkout</small>
+            </div>
+
+            <div className="quickview-actions">
+              <button className="pill dark full" onClick={() => { add(product); setExpanded(false); }}>
+                Add to Shopping Bag • {money(product.price)}
+              </button>
+              {toggleFav && (
+                <button className="quickview-wishlist-link" onClick={() => toggleFav(product.id)}>
+                  <Heart size={16} fill={isFav ? "currentColor" : "none"} /> {isFav ? "Saved in Wishlist" : "Save to Wishlist"}
+                </button>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
+    )}
+  </>;
 }
 
 function ServicesPage({ book, favorites, toggleFavorite, initialFilter }: { book: (s: Service) => void; favorites: string[]; toggleFavorite: (id: string) => void; initialFilter?: string | null }) {
@@ -449,9 +523,18 @@ function ServicesPage({ book, favorites, toggleFavorite, initialFilter }: { book
       <div className="filter-row">
         {categories.map(c => <button key={c} className={filter === c ? "active" : ""} onClick={() => setFilter(c)}>{c}</button>)}
       </div>
-      <div className="service-grid service-list">
-        {list.map((service, index) => <ServiceCard key={service.id} service={service} index={index} book={book} isFav={favorites.includes(service.id)} toggleFav={toggleFavorite} />)}
-      </div>
+      {list.length === 0 ? (
+        <div className="empty-state catalog-empty" style={{ padding: "60px 20px", textTransform: "none" }}>
+          <Sparkles size={40} style={{ margin: "0 auto 16px", color: "#c89534", opacity: 0.8 }} />
+          <h3 style={{ font: "500 28px var(--display)", margin: "8px 0" }}>No services found</h3>
+          <p style={{ color: "#777", marginBottom: 20 }}>There are currently no services listed under &quot;{filter}&quot;.</p>
+          <button className="pill dark" onClick={() => setFilter("All")}>View all services</button>
+        </div>
+      ) : (
+        <div className="service-grid service-list">
+          {list.map((service, index) => <ServiceCard key={service.id} service={service} index={index} book={book} isFav={favorites.includes(service.id)} toggleFav={toggleFavorite} />)}
+        </div>
+      )}
     </section>
   </>;
 }
@@ -468,16 +551,30 @@ function ShopPage({ addToCart, favorites, toggleFavorite, initialFilter }: { add
 
   return <><PageHero variant="shop" number="02" kicker="The shop" title="Beauty that keeps" italic="giving." text="Studio-approved wigs, tools and essentials, selected to make every day feel polished." />
     <section className="section catalog">
-      <div className="filter-row" style={{ marginBottom: 20 }}>
-        {categories.map(c => <button key={c} className={filter === c ? "active" : ""} onClick={() => setFilter(c)}>{c}</button>)}
+      <div className="shop-controls-bar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
+        <div className="filter-row" style={{ margin: 0 }}>
+          {categories.map(c => <button key={c} className={filter === c ? "active" : ""} onClick={() => setFilter(c)}>{c}</button>)}
+        </div>
+        <div className="shop-search-inline">
+          <label className="shop-search-label">
+            <Search size={16} />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search the collection…" />
+          </label>
+          <span className="shop-count-tag">{products.length} items</span>
+        </div>
       </div>
-      <div className="shop-tools">
-        <p>{products.length} curated pieces</p>
-        <label><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search the collection" /></label>
-      </div>
-      <div className="product-grid shop-grid">
-        {products.map((p) => <ProductCard key={p.id} product={p} add={addToCart} isFav={favorites.includes(p.id)} toggleFav={toggleFavorite} />)}
-      </div>
+      {products.length === 0 ? (
+        <div className="empty-state catalog-empty" style={{ padding: "60px 20px", textTransform: "none" }}>
+          <ShoppingBag size={40} style={{ margin: "0 auto 16px", color: "#c89534", opacity: 0.8 }} />
+          <h3 style={{ font: "500 28px var(--display)", margin: "8px 0" }}>No products found</h3>
+          <p style={{ color: "#777", marginBottom: 20 }}>{query ? `No items matched "${query}".` : `No items in category "${filter}".`}</p>
+          <button className="pill dark" onClick={() => { setFilter("All"); setQuery(""); }}>Clear filter</button>
+        </div>
+      ) : (
+        <div className="product-grid shop-grid">
+          {products.map((p) => <ProductCard key={p.id} product={p} add={addToCart} isFav={favorites.includes(p.id)} toggleFav={toggleFavorite} />)}
+        </div>
+      )}
     </section>
   </>;
 }
@@ -521,94 +618,455 @@ function WishlistPage({ favorites, addToCart, toggleFavorite, book }: { favorite
 function PageHero({ variant, number, kicker, title, italic, text }: { variant: "services" | "shop" | "wishlist" | "track" | "policies"; number: string; kicker: string; title: string; italic: string; text: string }) { return <section className={`page-hero page-hero-${variant}`}><span>{number}</span><div><p className="eyebrow">{kicker}</p><h1>{title}<br /><em>{italic}</em></h1></div><p>{text}</p></section>; }
 
 function TrackPage() {
-  const [reference, setReference] = useState(""); 
-  const [record, setRecord] = useState<TrackingRecord | null>(null);
-  const [searched, setSearched] = useState(false);
-  const [tracking, setTracking] = useState(false);
-  const [trackingError, setTrackingError] = useState("");
+  const [activeTab, setActiveTab] = useState<"order" | "booking">("order");
+  
+  // Track Order state
+  const [orderRef, setOrderRef] = useState("");
+  const [orderCredential, setOrderCredential] = useState("");
+  const [orderRecord, setOrderRecord] = useState<TrackingRecord | null>(null);
+  const [orderSearched, setOrderSearched] = useState(false);
+  const [orderTracking, setOrderTracking] = useState(false);
+  const [orderError, setOrderError] = useState("");
 
-  const handleTrack = async (e: React.FormEvent) => {
+  // Track Booking state
+  const [bookingRef, setBookingRef] = useState("");
+  const [bookingCredential, setBookingCredential] = useState("");
+  const [bookingRecord, setBookingRecord] = useState<TrackingRecord | null>(null);
+  const [bookingSearched, setBookingSearched] = useState(false);
+  const [bookingTracking, setBookingTracking] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+
+  // Booking modification modal state
+  const [modifyModalOpen, setModifyModalOpen] = useState(false);
+  const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
+  const [payingPaystack, setPayingPaystack] = useState(false);
+  const [modifyMessage, setModifyMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleTrackOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanRef = reference.trim().toUpperCase();
-    setTracking(true);
-    setTrackingError("");
+    const cleanRef = orderRef.trim().toUpperCase();
+    setOrderTracking(true);
+    setOrderError("");
     const live = await trackReference(cleanRef);
     const found = live.data || MOCK_TRACKING_DATABASE[cleanRef] || null;
-    setRecord(found as TrackingRecord | null);
-    setTrackingError(live.error || "");
-    setTracking(false);
-    setSearched(true);
+    if (found && found.type !== "Order") {
+      setOrderRecord(null);
+      setOrderError(`Reference "${cleanRef}" is a Booking record. Switch to the "Track Booking" tab.`);
+    } else {
+      setOrderRecord(found as TrackingRecord | null);
+    }
+    setOrderTracking(false);
+    setOrderSearched(true);
   };
-  const timeline = record ? [
-    { label: "Reference received", detail: "Your request is registered in the Gailant Beauty system." },
-    { label: record.type === "Order" ? "Payment confirmed" : "Appointment confirmed", detail: record.status === "Canceled" ? "This stage was completed before the cancellation." : "Your payment and requested details have been verified." },
-    { label: record.status === "Canceled" ? "Canceled" : record.status === "Rescheduled" ? "Schedule updated" : record.type === "Order" ? "Preparing your order" : "Your beauty appointment", detail: record.date },
-    { label: record.type === "Order" ? "Ready for delivery" : "Service complete", detail: record.status === "Canceled" ? (record.refundNote || "Refund processing details are shown below.") : "We will update this stage when it is complete." },
-  ] : [];
-  const activeTimelineIndex = record?.status === "Canceled" ? 2 : record?.status === "Rescheduled" ? 2 : record?.status === "Paid" || record?.status === "Guaranteed" ? 1 : 0;
 
-  return <><PageHero variant="track" number="03" kicker="Track with ease" title="Know what’s" italic="next." text="Use your order or booking reference to see real-time payment status and schedule updates." />
+  const handleTrackBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanRef = bookingRef.trim().toUpperCase();
+    setBookingTracking(true);
+    setBookingError("");
+    const live = await trackReference(cleanRef);
+    const found = live.data || MOCK_TRACKING_DATABASE[cleanRef] || null;
+    if (found && found.type !== "Booking") {
+      setBookingRecord(null);
+      setBookingError(`Reference "${cleanRef}" is an Order record. Switch to the "Track Order" tab.`);
+    } else {
+      setBookingRecord(found as TrackingRecord | null);
+    }
+    setBookingTracking(false);
+    setBookingSearched(true);
+  };
+
+  const executePaystackModification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bookingRecord) return;
+    if (!newDate || !newTime) {
+      setModifyMessage({ type: "error", text: "Please select both a new date and time slot." });
+      return;
+    }
+
+    setPayingPaystack(true);
+    setModifyMessage(null);
+
+    const clientEmail = bookingRecord.email || "client@gailantbeauty.com";
+    const modFeeGHS = 10;
+
+    try {
+      await openPaystackPayment({
+        email: clientEmail,
+        amountGHS: modFeeGHS,
+        metadata: {
+          bookingReference: bookingRecord.reference,
+          newDate,
+          newTime,
+          type: "booking_modification"
+        },
+        onSuccess: async (paymentRef) => {
+          // Update DB / store on payment success
+          const updatePayload = {
+            appointment_date: newDate,
+            appointment_time: newTime,
+            status: "rescheduled",
+            rescheduled_at: new Date().toISOString(),
+            modification_payment_ref: paymentRef
+          };
+
+          if (bookingRecord.reference) {
+            await updateRecord("bookings", bookingRecord.reference, updatePayload);
+            patchLocalRecord("bookings", bookingRecord.reference, updatePayload);
+          }
+
+          // Update local state
+          setBookingRecord(prev => prev ? {
+            ...prev,
+            status: "Rescheduled",
+            date: `${newDate} at ${newTime}`,
+            appointmentDate: newDate,
+            appointmentTime: newTime,
+            adminNote: `Rescheduled to ${newDate} at ${newTime}. Modification fee (GH₵ 10) confirmed via Paystack (${paymentRef}).`
+          } : null);
+
+          setPayingPaystack(false);
+          setModifyModalOpen(false);
+          setModifyMessage({ type: "success", text: `Booking rescheduled successfully! Paystack reference: ${paymentRef}` });
+        },
+        onClose: () => {
+          setPayingPaystack(false);
+          setModifyMessage({ type: "error", text: "Payment was cancelled. Your appointment was not modified." });
+        }
+      });
+    } catch (err: unknown) {
+      setPayingPaystack(false);
+      const msg = err instanceof Error ? err.message : "Paystack payment could not be initialized.";
+      setModifyMessage({ type: "error", text: msg });
+    }
+  };
+
+  // Order timeline stages (5 stages)
+  const orderStages = [
+    { key: "received", label: "Order Received", icon: Package },
+    { key: "preparing", label: "Preparing", icon: RefreshCw },
+    { key: "ready", label: "Ready for Delivery", icon: ShieldCheck },
+    { key: "out", label: "Out for Delivery", icon: Truck },
+    { key: "delivered", label: "Delivered", icon: Check }
+  ];
+
+  // Booking timeline stages (4 stages)
+  const bookingStages = [
+    { key: "booked", label: "Booked", icon: Calendar },
+    { key: "review", label: "Under Review", icon: Clock },
+    { key: "confirmed", label: "Confirmed", icon: ShieldCheck },
+    { key: "completed", label: "Completed", icon: Sparkles }
+  ];
+
+  return <><PageHero variant="track" number="03" kicker="Track with ease" title="Know what’s" italic="next." text="Real-time order delivery status and appointment schedule tracking." />
     <section className="track-section">
       <div className="track-card">
-        <Package size={32} />
-        <h2>Track an order or booking</h2>
-        <p>Try sample references: <strong>GB-2026-001</strong> (Paid), <strong>GB-2026-002</strong> (Guaranteed), <strong>GB-2026-003</strong> (Rescheduled), or <strong>GB-2026-004</strong> (Canceled).</p>
-        <form onSubmit={handleTrack}>
-          <label>REFERENCE NUMBER
-            <input required value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. GB-2026-001" />
-          </label>
-          <button className="pill dark" type="submit" disabled={tracking}>{tracking ? "Checking…" : "Check status"} <ArrowRight size={17} /></button>
-        </form>
+        <div className="track-subpage-tabs">
+          <button 
+            className={`track-tab-btn ${activeTab === "order" ? "active" : ""}`}
+            onClick={() => setActiveTab("order")}
+          >
+            <Package size={18} />
+            <span>Track Order</span>
+          </button>
+          <button 
+            className={`track-tab-btn ${activeTab === "booking" ? "active" : ""}`}
+            onClick={() => setActiveTab("booking")}
+          >
+            <Calendar size={18} />
+            <span>Track Booking</span>
+          </button>
+        </div>
 
-        {trackingError && <p className="tracking-error" role="alert">{trackingError}</p>}
+        {activeTab === "order" ? (
+          <div className="track-subpage">
+            <p className="track-intro">Enter your Order ID (e.g. <strong>GB-2026-002</strong>) and your phone or email to track your delivery status.</p>
+            
+            <form onSubmit={handleTrackOrder} className="track-form" style={{ marginTop: 24 }}>
+              <div className="two-col" style={{ marginBottom: 16 }}>
+                <label>ORDER ID / REFERENCE
+                  <input required value={orderRef} onChange={(e) => setOrderRef(e.target.value)} placeholder="e.g. GB-2026-002" />
+                </label>
+                <label>PHONE OR EMAIL
+                  <input value={orderCredential} onChange={(e) => setOrderCredential(e.target.value)} placeholder="Phone number or email" />
+                </label>
+              </div>
+              <button className="pill dark" type="submit" disabled={orderTracking} style={{ minHeight: 48, width: "100%" }}>
+                {orderTracking ? "Searching…" : "Check Order Status"} <ArrowRight size={17} />
+              </button>
+            </form>
 
-        {searched && record && <div className="track-result">
-          <header className="track-result-head">
-            <div><small>REFERENCE {record.reference}</small><h3>{record.item}</h3><p>{record.clientName} • {record.type}</p></div>
-            <span className={`badge-status ${record.status.toLowerCase()}`}>{record.status}</span>
-          </header>
-          <div className="tracking-timeline">
-            {timeline.map((item, index) => <div className={`timeline-event ${index <= activeTimelineIndex ? "complete" : ""} ${index === activeTimelineIndex ? "current" : ""}`} key={item.label}>
-              <span className="timeline-dot">{index < activeTimelineIndex ? <Check size={14} /> : index + 1}</span>
-              <div><time>{index === activeTimelineIndex ? "CURRENT UPDATE" : index < activeTimelineIndex ? "COMPLETED" : "UPCOMING"}</time><strong>{item.label}</strong><p>{item.detail}</p></div>
-            </div>)}
+            {orderError && <p className="tracking-error" role="alert">{orderError}</p>}
+
+            {orderSearched && orderRecord && (
+              <div className="track-result order-result-view">
+                {/* 1. Order Details block */}
+                <div className="track-meta-header">
+                  <div>
+                    <span className="order-num-tag">ORDER #{orderRecord.reference}</span>
+                    <h3>{orderRecord.item}</h3>
+                    <p className="client-sub">{orderRecord.clientName} • Placed {orderRecord.orderPlacedDate || orderRecord.date}</p>
+                  </div>
+                  <div className="order-meta-stats">
+                    <div><span>Status</span><strong className={`badge-status ${orderRecord.status.toLowerCase().replace(/\s+/g, '-')}`}>{orderRecord.status}</strong></div>
+                    <div><span>Est. Delivery</span><strong>{orderRecord.orderDeliveredDate || "Pending dispatch"}</strong></div>
+                    <div><span>Items</span><strong>{orderRecord.itemsList?.length || 1}</strong></div>
+                    <button className="invoice-btn" onClick={() => alert("Invoice download starting...")} title="Download Invoice">
+                      <Download size={14} /> Invoice
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Order Tracking Timeline block (5 stages with icons) */}
+                <div className="timeline-block">
+                  <h4 className="timeline-title">Delivery Progress</h4>
+                  <div className="icon-timeline-row">
+                    {orderStages.map((stg, idx) => {
+                      const currentStageIdx = orderRecord.orderStage ?? 0;
+                      const isComplete = idx <= currentStageIdx;
+                      const isCurrent = idx === currentStageIdx;
+                      const StageIcon = stg.icon;
+                      const timestampInfo = orderRecord.stageTimestamps?.[idx];
+
+                      return (
+                        <div key={stg.key} className={`icon-timeline-node ${isComplete ? "complete" : "pending"} ${isCurrent ? "current" : ""}`}>
+                          <div className="node-icon-wrapper">
+                            <StageIcon size={20} />
+                            {isComplete && <span className="checkmark-badge"><Check size={10} /></span>}
+                          </div>
+                          <strong>{stg.label}</strong>
+                          <small>
+                            {isComplete ? (timestampInfo?.timestamp || "Confirmed") : (timestampInfo?.expected || "Expected")}
+                          </small>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Items breakdown */}
+                {orderRecord.itemsList && orderRecord.itemsList.length > 0 && (
+                  <div className="order-items-block">
+                    <h4>Order Summary</h4>
+                    <div className="order-items-table">
+                      {orderRecord.itemsList.map(item => (
+                        <div key={item.id} className="order-item-row">
+                          <div className="item-thumb"><Package size={20} /></div>
+                          <div className="item-info">
+                            <strong>{item.name}</strong>
+                            <small>{item.size ? `Size: ${item.size} • ` : ""}ID: {item.productId}</small>
+                          </div>
+                          <span className="item-qty">Qty: {item.quantity}</span>
+                          <strong className="item-price">{money(item.price * item.quantity)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Totals block */}
+                <div className="order-totals-block">
+                  <div className="totals-row"><span>Subtotal</span><span>{money(orderRecord.subtotal || 0)}</span></div>
+                  <div className="totals-row"><span>Delivery Fee</span><span>{money(orderRecord.deliveryFee || 50)}</span></div>
+                  {Boolean(orderRecord.discount) && <div className="totals-row discount"><span>Discount</span><span>-{money(orderRecord.discount || 0)}</span></div>}
+                  <div className="totals-row grand-total"><span>Total</span><strong>{money(orderRecord.totalAmount || (orderRecord.subtotal || 0) + (orderRecord.deliveryFee || 50))}</strong></div>
+                </div>
+
+                {orderRecord.adminNote && (
+                  <aside className="studio-note"><small>STUDIO UPDATE</small><p>{orderRecord.adminNote}</p></aside>
+                )}
+              </div>
+            )}
+
+            {orderSearched && !orderRecord && !orderError && (
+              <div className="track-not-found">
+                <Package size={36} />
+                <h3>We couldn&apos;t find an order with those details</h3>
+                <p>Please double-check your Order ID (e.g. <strong>GB-2026-002</strong>) and try again. If you continue to have trouble, our studio team is here on WhatsApp.</p>
+                <button className="pill light" onClick={() => { setOrderSearched(false); setOrderRef(""); }}>Try another Order ID</button>
+              </div>
+            )}
           </div>
-          {record.adminNote && <aside className="studio-note"><small>NOTE FROM THE STUDIO</small><p>{record.adminNote}</p></aside>}
-          {record.status === "Canceled" && <aside className="refund-note"><small>REFUND UPDATE</small><p>{record.refundNote || "Your refund has been processed to the original payment method."}</p></aside>}
-        </div>}
+        ) : (
+          <div className="track-subpage">
+            <p className="track-intro">Enter your Booking Code (e.g. <strong>GB-2026-001</strong> or <strong>GB-2026-003</strong>) to check appointment status or request a schedule change.</p>
 
-        {searched && !record && !trackingError && (
-          <div className="track-result" style={{ marginTop: 24, background: "#fff8f6" }}>
-            <div>
-              <strong>Reference Not Found</strong>
-              <p>We couldn&apos;t find reference &quot;{reference}&quot;. Please double check your code or WhatsApp our team for help.</p>
-            </div>
+            <form onSubmit={handleTrackBooking} className="track-form" style={{ marginTop: 24 }}>
+              <div className="two-col" style={{ marginBottom: 16 }}>
+                <label>BOOKING CODE / REFERENCE
+                  <input required value={bookingRef} onChange={(e) => setBookingRef(e.target.value)} placeholder="e.g. GB-2026-001" />
+                </label>
+                <label>PHONE OR EMAIL
+                  <input value={bookingCredential} onChange={(e) => setBookingCredential(e.target.value)} placeholder="Phone number or email" />
+                </label>
+              </div>
+              <button className="pill dark" type="submit" disabled={bookingTracking} style={{ minHeight: 48, width: "100%" }}>
+                {bookingTracking ? "Searching…" : "Check Appointment"} <ArrowRight size={17} />
+              </button>
+            </form>
+
+            {bookingError && <p className="tracking-error" role="alert">{bookingError}</p>}
+            {modifyMessage && (
+              <div className={`modify-toast ${modifyMessage.type}`} role="alert">
+                <p>{modifyMessage.text}</p>
+              </div>
+            )}
+
+            {bookingSearched && bookingRecord && (
+              <div className="track-result booking-result-view">
+                <div className="track-meta-header">
+                  <div>
+                    <span className="order-num-tag">BOOKING #{bookingRecord.reference}</span>
+                    <h3>{bookingRecord.item}</h3>
+                    <p className="client-sub">{bookingRecord.clientName} • {bookingRecord.date}</p>
+                  </div>
+                  <div className="order-meta-stats">
+                    <div><span>Status</span><strong className={`badge-status ${bookingRecord.status.toLowerCase().replace(/\s+/g, '-')}`}>{bookingRecord.status}</strong></div>
+                    <div><span>Service Price</span><strong>{money(bookingRecord.servicePrice || 0)}</strong></div>
+                    <div><span>Deposit Paid</span><strong>{money(bookingRecord.depositPaid || 0)}</strong></div>
+                    {(bookingRecord.status === "Confirmed" || bookingRecord.status === "Rescheduled" || bookingRecord.status === "Paid") && (
+                      <button className="pill dark modify-btn" onClick={() => setModifyModalOpen(true)}>
+                        Modify Booking (GH₵ 10)
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Booking Timeline (4 stages) */}
+                <div className="timeline-block">
+                  <h4 className="timeline-title">Appointment Status</h4>
+                  <div className="icon-timeline-row booking-timeline-row">
+                    {bookingStages.map((stg, idx) => {
+                      const currentStageIdx = bookingRecord.bookingStage ?? (bookingRecord.status === "Canceled" ? 1 : 2);
+                      const isComplete = idx <= currentStageIdx && bookingRecord.status !== "Canceled";
+                      const isCurrent = idx === currentStageIdx && bookingRecord.status !== "Canceled";
+                      const StageIcon = stg.icon;
+                      const timestampInfo = bookingRecord.stageTimestamps?.[idx];
+
+                      return (
+                        <div key={stg.key} className={`icon-timeline-node ${isComplete ? "complete" : "pending"} ${isCurrent ? "current" : ""}`}>
+                          <div className="node-icon-wrapper">
+                            <StageIcon size={20} />
+                            {isComplete && <span className="checkmark-badge"><Check size={10} /></span>}
+                          </div>
+                          <strong>{stg.label}</strong>
+                          <small>
+                            {isComplete ? (timestampInfo?.timestamp || "Verified") : (timestampInfo?.expected || "Upcoming")}
+                          </small>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {bookingRecord.adminNote && (
+                  <aside className="studio-note"><small>STUDIO NOTE</small><p>{bookingRecord.adminNote}</p></aside>
+                )}
+
+                {bookingRecord.status === "Canceled" && (
+                  <aside className="refund-note"><small>CANCELLATION & REFUND</small><p>{bookingRecord.refundNote || "Appointment canceled. Deposit status processed according to studio policy."}</p></aside>
+                )}
+              </div>
+            )}
+
+            {bookingSearched && !bookingRecord && !bookingError && (
+              <div className="track-not-found">
+                <Calendar size={36} />
+                <h3>We couldn&apos;t find a booking with those details</h3>
+                <p>Please check your Booking Code (e.g. <strong>GB-2026-001</strong>) and try again. For assistance, reach out via WhatsApp.</p>
+                <button className="pill light" onClick={() => { setBookingSearched(false); setBookingRef(""); }}>Try another code</button>
+              </div>
+            )}
           </div>
         )}
       </div>
-      <aside>
-        <p className="eyebrow">Customer Support</p>
+
+      <aside className="support-card-compact track-sidebar">
+        <p className="eyebrow light">Customer Support</p>
         <h3>We’re one message away.</h3>
-        <p>Need to modify your appointment or inquire about your home delivery? Chat with our team directly.</p>
-        <a href={`https://wa.me/${BRAND.whatsapp}`} target="_blank" rel="noreferrer" style={{ marginBottom: 12 }}>Chat on WhatsApp <ArrowRight size={16} /></a>
-        <a href={`tel:${BRAND.primaryPhone}`}>Call {BRAND.primaryPhone}</a>
+        <p>Need to modify your appointment or inquire about home delivery? Chat directly with our Abeka studio team.</p>
+
+        <div className="support-meta-details">
+          <span>🕐 Open Mon – Sat: 8:00 AM – 7:00 PM</span>
+          <span>⚡ Average response time: under 15 mins</span>
+        </div>
+
+        <div className="support-card-actions">
+          <a href={`https://wa.me/${BRAND.whatsapp}`} target="_blank" rel="noreferrer" className="pill light">
+            Chat on WhatsApp <ArrowRight size={16} />
+          </a>
+          <a href={`tel:${BRAND.primaryPhone}`} className="pill light">Call {BRAND.primaryPhone}</a>
+        </div>
       </aside>
+
+      {/* Real Paystack Booking Modification Modal */}
+      {modifyModalOpen && bookingRecord && (
+        <div className="overlay" onMouseDown={() => !payingPaystack && setModifyModalOpen(false)}>
+          <div className="flow-modal booking-modify-modal" onMouseDown={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => !payingPaystack && setModifyModalOpen(false)} aria-label="Close"><X /></button>
+            <div className="modal-intro">
+              <p className="eyebrow">Modify Appointment</p>
+              <h2>{bookingRecord.item}</h2>
+              <p>Select your new preferred date and time. Paystack will collect the GH₵ 10 modification fee before confirming your update.</p>
+            </div>
+
+            <form onSubmit={executePaystackModification} className="flow-form">
+              <div className="fee-disclosure-banner">
+                <ShieldCheck size={20} />
+                <div>
+                  <strong>Modification Fee: GH₵ 10.00</strong>
+                  <p>Charged via Paystack (MoMo or card). Your appointment will be updated immediately upon payment success.</p>
+                </div>
+              </div>
+
+              <label>New Appointment Date
+                <input 
+                  type="date" 
+                  required 
+                  min={new Date().toISOString().split("T")[0]}
+                  value={newDate} 
+                  onChange={e => setNewDate(e.target.value)} 
+                />
+              </label>
+
+              <label>New Time Slot
+                <select required value={newTime} onChange={e => setNewTime(e.target.value)}>
+                  <option value="">Select a time slot</option>
+                  <option value="09:00 AM">09:00 AM</option>
+                  <option value="11:00 AM">11:00 AM</option>
+                  <option value="01:30 PM">01:30 PM</option>
+                  <option value="03:30 PM">03:30 PM</option>
+                  <option value="05:30 PM">05:30 PM</option>
+                </select>
+              </label>
+
+              <button className="pill dark full" type="submit" disabled={payingPaystack}>
+                {payingPaystack ? "Connecting to Paystack…" : "Pay GH₵ 10 & Confirm Modification"}
+              </button>
+              <small className="secure-note" style={{ textAlign: "center", display: "block", marginTop: 8 }}>
+                Secured by Paystack • MoMo and cards accepted
+              </small>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   </>;
 }
 
 function PoliciesPage() { 
   const [reviews, setReviews] = useState(TESTIMONIALS);
-  const [newReview, setNewReview] = useState({ name: "", service: "", quote: "" });
+  const [newReview, setNewReview] = useState({ name: "", service: "", quote: "", rating: 5 });
   const [submitted, setSubmitted] = useState(false);
   const [activeTab, setActiveTab] = useState<"policies" | "faqs" | "review">("policies");
 
   const handleReviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newReview.name && newReview.quote) {
-      setReviews([{ quote: newReview.quote, name: newReview.name, service: newReview.service || "Client Review", rating: 5 }, ...reviews]);
+      setReviews([{ quote: newReview.quote, name: newReview.name, service: newReview.service || "Client Review", rating: newReview.rating || 5 }, ...reviews]);
       setSubmitted(true);
-      setNewReview({ name: "", service: "", quote: "" });
+      setNewReview({ name: "", service: "", quote: "", rating: 5 });
     }
   };
 
@@ -616,10 +1074,25 @@ function PoliciesPage() {
     <section className="policy-section">
       <div>
         {/* Navigation Tabs for Reorganized Layout */}
-        <div className="policy-tab-bar" style={{ display: "flex", gap: 12, marginBottom: 32, borderBottom: "1px solid #ddd", paddingBottom: 12 }}>
-          <button className={`pill ${activeTab === "policies" ? "dark" : "light"}`} onClick={() => setActiveTab("policies")}>Studio Guidelines</button>
-          <button className={`pill ${activeTab === "faqs" ? "dark" : "light"}`} onClick={() => setActiveTab("faqs")}>FAQs</button>
-          <button className={`pill ${activeTab === "review" ? "dark" : "light"}`} onClick={() => setActiveTab("review")}>Leave a Review</button>
+        <div className="track-subpage-tabs policy-tab-bar" style={{ marginBottom: 32 }}>
+          <button 
+            className={`track-tab-btn ${activeTab === "policies" ? "active" : ""}`}
+            onClick={() => setActiveTab("policies")}
+          >
+            <span>Studio Guidelines</span>
+          </button>
+          <button 
+            className={`track-tab-btn ${activeTab === "faqs" ? "active" : ""}`}
+            onClick={() => setActiveTab("faqs")}
+          >
+            <span>FAQs</span>
+          </button>
+          <button 
+            className={`track-tab-btn ${activeTab === "review" ? "active" : ""}`}
+            onClick={() => setActiveTab("review")}
+          >
+            <span>Leave a Review</span>
+          </button>
         </div>
 
         {activeTab === "policies" && (
@@ -645,17 +1118,49 @@ function PoliciesPage() {
 
         {activeTab === "review" && (
           <div className="review-form-card" style={{ marginTop: 0 }}>
-            <h3>Leave a Review</h3>
-            <p>Loved your Gailant experience? Share your notes with us!</p>
+            <div className="review-form-header">
+              <Sparkles size={24} style={{ color: "#c89534" }} />
+              <div>
+                <h3>Leave a Review</h3>
+                <p>Loved your Gailant experience? Share your thoughts with our studio team!</p>
+              </div>
+            </div>
             {submitted ? (
-              <p style={{ color: "#166534", fontWeight: 600 }}>Thank you for your feedback! Your review has been added.</p>
+              <div className="review-success-banner">
+                <Check size={20} />
+                <p>Thank you for your feedback! Your review has been submitted and will appear after verification.</p>
+              </div>
             ) : (
-              <form onSubmit={handleReviewSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div className="two-col">
-                  <input required placeholder="Your Name" value={newReview.name} onChange={e => setNewReview({ ...newReview, name: e.target.value })} />
-                  <input placeholder="Service Received (e.g. Knotless Braids)" value={newReview.service} onChange={e => setNewReview({ ...newReview, service: e.target.value })} />
+              <form onSubmit={handleReviewSubmit} className="modern-review-form">
+                <div className="rating-select-group">
+                  <label className="field-label">Your Rating</label>
+                  <div className="star-rating-buttons">
+                    {[5, 4, 3, 2, 1].map((num) => (
+                      <button
+                        type="button"
+                        key={num}
+                        className={`star-select-btn ${newReview.rating === num ? "selected" : ""}`}
+                        onClick={() => setNewReview({ ...newReview, rating: num })}
+                      >
+                        {"★".repeat(num)} <small>({num}/5)</small>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <textarea required placeholder="Write your review here..." value={newReview.quote} onChange={e => setNewReview({ ...newReview, quote: e.target.value })} style={{ height: 80, padding: 12 }} />
+                <div className="two-col">
+                  <div className="form-field">
+                    <label className="field-label">Your Name *</label>
+                    <input required placeholder="e.g. Abena Mansa" value={newReview.name} onChange={e => setNewReview({ ...newReview, name: e.target.value })} />
+                  </div>
+                  <div className="form-field">
+                    <label className="field-label">Service Received</label>
+                    <input placeholder="e.g. Knotless Braids, Soft Glam" value={newReview.service} onChange={e => setNewReview({ ...newReview, service: e.target.value })} />
+                  </div>
+                </div>
+                <div className="form-field">
+                  <label className="field-label">Your Review *</label>
+                  <textarea required placeholder="Describe your experience with our stylists, nails, or home delivery..." value={newReview.quote} onChange={e => setNewReview({ ...newReview, quote: e.target.value })} style={{ height: 100 }} />
+                </div>
                 <button className="pill dark" type="submit" style={{ width: "max-content" }}>Submit Review <ArrowRight size={16} /></button>
               </form>
             )}
@@ -663,12 +1168,20 @@ function PoliciesPage() {
         )}
       </div>
 
-      <aside>
+      <aside className="support-card-compact">
         <p className="eyebrow light">Customer Support</p>
         <h2>Let’s make it easy.</h2>
         <p>Talk to our team before booking if you need extra time, accessibility support or a special arrangement.</p>
-        <a className="pill light" href={`tel:${BRAND.primaryPhone}`} style={{ marginBottom: 16 }}>Call {BRAND.primaryPhone}</a>
-        <a className="pill light" href={`https://wa.me/${BRAND.whatsapp}`} target="_blank" rel="noreferrer">WhatsApp Us</a>
+        
+        <div className="support-meta-details">
+          <span>🕐 Open Mon – Sat: 8:00 AM – 7:00 PM</span>
+          <span>⚡ Average response time: under 15 mins</span>
+        </div>
+
+        <div className="support-card-actions">
+          <a className="pill light" href={`tel:${BRAND.primaryPhone}`}>Call {BRAND.primaryPhone}</a>
+          <a className="pill light" href={`https://wa.me/${BRAND.whatsapp}`} target="_blank" rel="noreferrer">WhatsApp Us</a>
+        </div>
       </aside>
     </section>
   </>;
@@ -677,37 +1190,174 @@ function PoliciesPage() {
 function CartDrawer({ cart, close, update, complete }: { cart: CartLine[]; close: () => void; update: (id: string, n: number) => void; complete: (message: string) => void }) {
   const [step, setStep] = useState<"bag" | "checkout">("bag");
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", notes: "" });
+  const [countryCode, setCountryCode] = useState("+233");
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    street: "",
+    city: "",
+    unit: "",
+    country: "Ghana",
+    postalCode: "",
+    notes: ""
+  });
+
   const subtotal = cart.reduce((sum, x) => sum + x.price * x.quantity, 0);
   const change = (key: keyof typeof form, value: string) => setForm(current => ({ ...current, [key]: value }));
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
-    const { error } = await insertRecord("orders", { ...form, items: cart, total_amount: subtotal, status: "pending_payment" });
+    const fullPhone = `${countryCode} ${form.phone.trim()}`;
+    const fullAddress = `${form.street}${form.unit ? `, ${form.unit}` : ""}, ${form.city}, ${form.country}${form.postalCode ? ` (${form.postalCode})` : ""}`;
+
+    const { error } = await insertRecord("orders", {
+      name: form.name,
+      phone: fullPhone,
+      email: form.email,
+      address: fullAddress,
+      notes: form.notes,
+      items: cart,
+      total_amount: subtotal,
+      status: "pending_payment"
+    });
+
     setLoading(false);
     if (error) return alert(error);
     complete(`Thank you, ${form.name.split(" ")[0] || "queen"}. Your order request is confirmed.`);
   };
+
   return <div className="overlay" onMouseDown={close}>
-    <aside className={`cart-drawer ${step === "checkout" ? "checkout-step" : ""}`} role="dialog" aria-modal="true" aria-labelledby="cart-title" onMouseDown={(e) => e.stopPropagation()}>
-      <header>
-        <div><small>{step === "bag" ? "YOUR SELECTION" : "SECURE CHECKOUT"}</small><h2 id="cart-title">{step === "bag" ? "Shopping bag" : "Delivery details"}</h2></div>
-        <button onClick={close} aria-label="Close cart"><X /></button>
+    <aside className={`cart-drawer ref-cart-drawer ${step === "checkout" ? "checkout-step" : ""}`} role="dialog" aria-modal="true" aria-labelledby="cart-title" onMouseDown={(e) => e.stopPropagation()}>
+      <header className="ref-cart-header">
+        <h2 id="cart-title">{step === "bag" ? "Your Bag" : "Delivery details"}</h2>
+        <button className="ref-close-btn" onClick={close} aria-label="Close cart"><X size={20} /></button>
       </header>
+
       {step === "bag" ? <>
-        <div className="cart-lines">{cart.length === 0 ? <div className="empty-state"><ShoppingBag /><h3>Your bag is waiting.</h3><p>Discover our curated beauty collection.</p></div> : cart.map((x) => <div className="cart-line" key={x.id}><div className={`mini-product ${x.tone}`}>G</div><div><span>{x.category}</span><strong>{x.name}</strong><div className="quantity"><button onClick={() => update(x.id, -1)} aria-label={`Remove one ${x.name}`}><Minus size={13} /></button><span aria-label={`${x.quantity} in bag`}>{x.quantity}</span><button onClick={() => update(x.id, 1)} aria-label={`Add one ${x.name}`}><Plus size={13} /></button></div></div><b>{money(x.price * x.quantity)}</b></div>)}</div>
-        {cart.length > 0 && <footer><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div><p>Delivery is confirmed with our team after payment.</p><button className="pill dark full" onClick={() => setStep("checkout")}>Continue securely <ArrowRight size={17} /></button><small>Payments secured by Paystack</small></footer>}
-      </> : <form className="cart-checkout-form" onSubmit={submit}>
-        <button type="button" className="cart-back" onClick={() => setStep("bag")}>← Back to bag</button>
-        <div className="checkout-total"><span>Order total</span><strong>{money(subtotal)}</strong></div>
-        <label>Full name<input required value={form.name} onChange={e => change("name", e.target.value)} autoComplete="name" /></label>
-        <label>Phone or WhatsApp<input required value={form.phone} onChange={e => change("phone", e.target.value)} inputMode="tel" autoComplete="tel" /></label>
-        <label>Email address<input type="email" value={form.email} onChange={e => change("email", e.target.value)} autoComplete="email" /></label>
-        <label>Delivery address<textarea required value={form.address} onChange={e => change("address", e.target.value)} placeholder="Street, area and city" /></label>
-        <label>Delivery note <span>Optional</span><textarea value={form.notes} onChange={e => change("notes", e.target.value)} placeholder="Landmark or delivery instructions" /></label>
-        <button className="pill dark full" disabled={loading}>{loading ? "Submitting..." : `Continue to Paystack • ${money(subtotal)}`}</button>
-        <small className="secure-note">Secure payment • Mobile Money and cards accepted</small>
-      </form>}
+        <div className="cart-lines ref-cart-lines">
+          {cart.length === 0 ? (
+            <div className="empty-state">
+              <ShoppingBag size={44} style={{ color: "#bd8427", marginBottom: 14 }} />
+              <h3>Your bag is empty</h3>
+              <p>Discover studio-approved wigs, tools and beauty essentials.</p>
+            </div>
+          ) : (
+            cart.map((x) => (
+              <div className="cart-line ref-cart-line" key={x.id}>
+                <div className={`mini-product ${x.tone}`}>
+                  <span>G</span>
+                </div>
+                <div className="ref-line-details">
+                  <span className="ref-product-code">{x.id.toUpperCase()}</span>
+                  <strong className="ref-product-name">{x.name}</strong>
+                  <span className="ref-product-subtitle">{x.category} Collection</span>
+                  <div className="ref-stepper-row">
+                    <div className="quantity">
+                      <button onClick={() => update(x.id, -1)} aria-label={`Remove one ${x.name}`}><Minus size={12} /></button>
+                      <span>{x.quantity}</span>
+                      <button onClick={() => update(x.id, 1)} aria-label={`Add one ${x.name}`}><Plus size={12} /></button>
+                    </div>
+                    <button className="ref-remove-link" onClick={() => update(x.id, -x.quantity)}>Remove</button>
+                  </div>
+                </div>
+                <b className="ref-line-price">{money(x.price * x.quantity)}</b>
+              </div>
+            ))
+          )}
+        </div>
+
+        {cart.length > 0 && (
+          <footer className="ref-cart-footer">
+            <div className="ref-summary-row">
+              <span>Total</span>
+              <strong>{money(subtotal)}</strong>
+            </div>
+            <button className="pill dark full ref-primary-btn" onClick={() => setStep("checkout")}>
+              Continue <ArrowRight size={17} />
+            </button>
+          </footer>
+        )}
+      </> : (
+        <form className="cart-checkout-form ref-checkout-form" onSubmit={submit}>
+          <div className="ref-form-fields">
+            <label>Full Name *
+              <input required value={form.name} onChange={e => change("name", e.target.value)} autoComplete="name" placeholder="Full name" />
+            </label>
+
+            <label>Phone Number *
+              <div className="phone-country-input-group">
+                <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="country-code-select">
+                  <option value="+233">🇬🇭 +233</option>
+                  <option value="+234">🇳🇬 +234</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+225">🇨🇮 +225</option>
+                </select>
+                <input required value={form.phone} onChange={e => change("phone", e.target.value)} inputMode="tel" autoComplete="tel" placeholder="+233 XXXXXXXXX" />
+              </div>
+            </label>
+
+            <label>Street Address *
+              <input required value={form.street} onChange={e => change("street", e.target.value)} placeholder="Street address" />
+            </label>
+
+            <div className="two-col">
+              <label>Town / City *
+                <input required value={form.city} onChange={e => change("city", e.target.value)} placeholder="Accra" />
+              </label>
+
+              <label>Apartment, suite, unit <span>Optional</span>
+                <input value={form.unit} onChange={e => change("unit", e.target.value)} placeholder="Apt / Unit" />
+              </label>
+            </div>
+
+            <div className="two-col">
+              <label>Country *
+                <select value={form.country} onChange={e => change("country", e.target.value)}>
+                  <option value="Ghana">Ghana</option>
+                  <option value="Nigeria">Nigeria</option>
+                  <option value="United Kingdom">United Kingdom</option>
+                  <option value="United States">United States</option>
+                </select>
+              </label>
+
+              <label>Postal / ZIP Code <span>Optional</span>
+                <input value={form.postalCode} onChange={e => change("postalCode", e.target.value)} placeholder="00233" />
+              </label>
+            </div>
+
+            <label>Email Address <span>Optional</span>
+              <input type="email" value={form.email} onChange={e => change("email", e.target.value)} autoComplete="email" placeholder="queen@example.com" />
+            </label>
+
+            <label>Order Notes <span>Optional</span>
+              <textarea value={form.notes} onChange={e => change("notes", e.target.value)} placeholder="Landmarks or delivery instructions" />
+            </label>
+          </div>
+
+          <div className="ref-payment-section">
+            <p>Pay securely with Mobile Money or card via Paystack.</p>
+            <span className="ref-payment-amount">Amount Due: <strong>{money(subtotal)}</strong></span>
+          </div>
+
+          <footer className="ref-checkout-footer">
+            <div className="ref-footer-total-bar">
+              <span>Total</span>
+              <strong>{money(subtotal)}</strong>
+            </div>
+            <div className="ref-footer-buttons">
+              <button type="button" className="pill light ref-back-btn" onClick={() => setStep("bag")}>
+                ← Back
+              </button>
+              <button type="submit" className="pill dark ref-pay-btn" disabled={loading}>
+                {loading ? "Connecting…" : "Pay with Paystack"}
+              </button>
+            </div>
+          </footer>
+        </form>
+      )}
     </aside>
   </div>;
 }
@@ -742,6 +1392,13 @@ function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; clos
           <p className="eyebrow">{modal.kind === "consultation" ? "Let’s talk" : "Reserve your time"}</p>
           <h2 id="flow-modal-title">{service?.name}</h2>
           <p>{modal.kind === "consultation" ? "Tell us what you have in mind and our team will reach out with the best next step." : "A few details, then your beauty moment is secured."}</p>
+          
+          <div className="modal-highlights">
+            <span>✧ Studio consultation & prep</span>
+            <span>✧ Premium Ghana-imported products</span>
+            <span>✧ Refreshments & studio WiFi</span>
+          </div>
+
           <div className="modal-summary">
             <span>{service?.duration}</span>
             <strong>{modal.kind === "consultation" ? "No payment today" : `${money(due)} deposit`}</strong>

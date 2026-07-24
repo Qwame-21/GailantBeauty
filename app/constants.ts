@@ -69,52 +69,141 @@ export const PRODUCTS: Product[] = [
 
 export type TrackingStatus = string;
 
+export type OrderItem = {
+  id: string;
+  name: string;
+  productId: string;
+  size?: string;
+  quantity: number;
+  price: number;
+  image?: string;
+};
+
 export type TrackingRecord = {
   reference: string;
   clientName: string;
+  email?: string;
+  phone?: string;
   type: "Booking" | "Order";
   item: string;
   status: TrackingStatus;
   date: string;
   adminNote?: string;
   refundNote?: string;
+  
+  // Track Order specific fields
+  orderPlacedDate?: string;
+  orderDeliveredDate?: string;
+  orderStage?: 0 | 1 | 2 | 3 | 4; // 0: Received, 1: Preparing, 2: Ready for Delivery, 3: Out for Delivery, 4: Delivered
+  stageTimestamps?: Array<{ stage: string; timestamp?: string; expected?: string }>;
+  itemsList?: OrderItem[];
+  subtotal?: number;
+  deliveryFee?: number;
+  discount?: number;
+  totalAmount?: number;
+
+  // Track Booking specific fields
+  bookingStage?: 0 | 1 | 2 | 3; // 0: Booked, 1: Under Review, 2: Confirmed/Rescheduled, 3: Completed
+  appointmentDate?: string;
+  appointmentTime?: string;
+  rescheduledDate?: string;
+  rescheduledTime?: string;
+  servicePrice?: number;
+  depositPaid?: number;
 };
 
 export const MOCK_TRACKING_DATABASE: Record<string, TrackingRecord> = {
   "GB-2026-001": {
     reference: "GB-2026-001",
     clientName: "Abena Mansa",
+    email: "abena@example.com",
+    phone: "0241234567",
     type: "Booking",
     item: "Knotless Braids (Long)",
-    status: "Paid",
+    status: "Confirmed",
     date: "July 24, 2026 at 10:00 AM",
+    bookingStage: 2,
+    appointmentDate: "2026-07-24",
+    appointmentTime: "10:00 AM",
+    servicePrice: 450,
+    depositPaid: 135,
+    stageTimestamps: [
+      { stage: "Booked", timestamp: "July 20, 2026 • 09:15 AM" },
+      { stage: "Under Review", timestamp: "July 20, 2026 • 11:30 AM" },
+      { stage: "Confirmed", timestamp: "July 20, 2026 • 02:00 PM" },
+      { stage: "Completed", expected: "July 24, 2026 • 04:00 PM" }
+    ],
     adminNote: "30% Deposit confirmed via Paystack. See you at Abeka studio!"
   },
   "GB-2026-002": {
     reference: "GB-2026-002",
     clientName: "Kofi Owusu",
+    email: "kofi@example.com",
+    phone: "0559876543",
     type: "Order",
     item: "The Accra Bob (Short Hair)",
-    status: "Guaranteed",
+    status: "Out for Delivery",
     date: "July 23, 2026",
-    adminNote: "Order packaged and guaranteed for home dispatch."
+    orderPlacedDate: "July 23, 2026 • 10:30 AM",
+    orderDeliveredDate: "Expected July 24, 2026 • 03:00 PM",
+    orderStage: 3,
+    stageTimestamps: [
+      { stage: "Order Received", timestamp: "July 23, 2026 • 10:30 AM" },
+      { stage: "Preparing", timestamp: "July 23, 2026 • 01:15 PM" },
+      { stage: "Ready for Delivery", timestamp: "July 24, 2026 • 08:45 AM" },
+      { stage: "Out for Delivery", timestamp: "July 24, 2026 • 09:30 AM" },
+      { stage: "Delivered", expected: "July 24, 2026 • 03:00 PM" }
+    ],
+    itemsList: [
+      { id: "item-1", name: "The Accra Bob (Short Hair)", productId: "prd-1", size: "10 inch", quantity: 1, price: 950 },
+      { id: "item-2", name: "Crown Melt Band", productId: "prd-3", quantity: 1, price: 60 }
+    ],
+    subtotal: 1010,
+    deliveryFee: 50,
+    discount: 0,
+    totalAmount: 1060,
+    adminNote: "Order packaged and out with courier."
   },
   "GB-2026-003": {
     reference: "GB-2026-003",
     clientName: "Efya Mensah",
+    email: "efya@example.com",
+    phone: "0201112233",
     type: "Booking",
     item: "Signature Gel Set",
     status: "Rescheduled",
-    date: "July 26, 2026 at 2:00 PM (Originally July 22)",
+    date: "July 26, 2026 at 2:00 PM",
+    bookingStage: 2,
+    appointmentDate: "2026-07-26",
+    appointmentTime: "02:00 PM",
+    rescheduledDate: "2026-07-26",
+    rescheduledTime: "02:00 PM",
+    servicePrice: 180,
+    depositPaid: 54,
+    stageTimestamps: [
+      { stage: "Booked", timestamp: "July 21, 2026 • 04:20 PM" },
+      { stage: "Under Review", timestamp: "July 21, 2026 • 05:00 PM" },
+      { stage: "Rescheduled", timestamp: "July 23, 2026 • 11:00 AM" },
+      { stage: "Completed", expected: "July 26, 2026 • 03:30 PM" }
+    ],
     adminNote: "Rescheduled upon client request. Stylist slot updated to Sunday 2:00 PM."
   },
   "GB-2026-004": {
     reference: "GB-2026-004",
     clientName: "Akosua Addo",
+    email: "akosua@example.com",
+    phone: "0504445566",
     type: "Booking",
     item: "Soft Glam",
     status: "Canceled",
     date: "July 22, 2026",
+    bookingStage: 1,
+    appointmentDate: "2026-07-22",
+    appointmentTime: "11:00 AM",
+    stageTimestamps: [
+      { stage: "Booked", timestamp: "July 21, 2026 • 02:00 PM" },
+      { stage: "Canceled", timestamp: "July 22, 2026 • 09:00 AM" }
+    ],
     adminNote: "Appointment canceled due to schedule conflict.",
     refundNote: "ATTENTION ADMIN: 100% Refund (GH₵ 105.00) issued back to MoMo / Bank account."
   }
