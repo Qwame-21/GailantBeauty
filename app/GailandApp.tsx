@@ -96,16 +96,16 @@ export function GailantApp() {
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
-  const navigate = (next: View, filter?: string) => { 
-    setView(next); 
+  const navigate = (next: View, filter?: string) => {
+    setView(next);
     setFilterCategory(filter || null);
-    setMenuOpen(false); 
+    setMenuOpen(false);
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
-  const addToCart = (product: Product) => { 
-    setCart((current) => current.some((x) => x.id === product.id) ? current.map((x) => x.id === product.id ? { ...x, quantity: x.quantity + 1 } : x) : [...current, { ...product, quantity: 1 }]); 
+  const addToCart = (product: Product) => {
+    setCart((current) => current.some((x) => x.id === product.id) ? current.map((x) => x.id === product.id ? { ...x, quantity: x.quantity + 1 } : x) : [...current, { ...product, quantity: 1 }]);
     setNotice(`ADDED ${product.name.toUpperCase()} TO BAG`);
   };
 
@@ -178,12 +178,12 @@ function FloatingTrioWidget({ cartCount, favoritesCount, openCart, navigate }: {
       </button>
       <div className="divider" />
       <button onClick={() => navigate("wishlist")} title="Wishlist / Favorites">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>
         <span>WISHLIST {favoritesCount > 0 ? `(${favoritesCount})` : ''}</span>
       </button>
       <div className="divider" />
       <button onClick={() => navigate("services")} title="Categories">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="6" height="6" x="3" y="3" rx="1"/><rect width="6" height="6" x="15" y="3" rx="1"/><rect width="6" height="6" x="15" y="15" rx="1"/><rect width="6" height="6" x="3" y="15" rx="1"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="6" height="6" x="3" y="3" rx="1" /><rect width="6" height="6" x="15" y="3" rx="1" /><rect width="6" height="6" x="15" y="15" rx="1" /><rect width="6" height="6" x="3" y="15" rx="1" /></svg>
         <span>CATEGORIES</span>
       </button>
     </div>
@@ -204,7 +204,7 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, favoritesCou
       const currentScrollY = window.scrollY;
       const hero = document.querySelector<HTMLElement>(".hero, .page-hero");
       const heroBottom = hero ? hero.offsetTop + hero.offsetHeight : 128;
-      
+
       setScrolled(currentScrollY >= heroBottom - 68);
 
       // Hide on scroll-down after 120px, show on scroll-up
@@ -260,18 +260,18 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, favoritesCou
         <Heart size={17} />
         {favoritesCount > 0 && <span className="wishlist-count" aria-label={`${favoritesCount} saved items`}>{favoritesCount}</span>}
       </button>
-      
+
       {/* Categories Dropdown Menu - Main button navigates directly to services on click */}
       <div className="dropdown-wrapper" onMouseLeave={() => setDropdownOpen(false)}>
-        <button 
-          className="nav-action-btn categorize-btn" 
+        <button
+          className="nav-action-btn categorize-btn"
           onClick={() => {
             if (!dropdownOpen) setDropdownOpen(true);
             else navigate("services");
           }}
           aria-label="Browse categories dropdown"
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="6" height="6" x="3" y="3" rx="1"/><rect width="6" height="6" x="14" y="3" rx="1"/><rect width="6" height="6" x="14" y="14" rx="1"/><rect width="6" height="6" x="3" y="14" rx="1"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="6" height="6" x="3" y="3" rx="1" /><rect width="6" height="6" x="14" y="3" rx="1" /><rect width="6" height="6" x="14" y="14" rx="1" /><rect width="6" height="6" x="3" y="14" rx="1" /></svg>
           <span className="btn-label">CATEGORIES</span>
           <ChevronDown size={13} style={{ transition: "transform 0.2s", transform: dropdownOpen ? "rotate(180deg)" : "rotate(0)" }} />
         </button>
@@ -282,11 +282,11 @@ function Header({ view, navigate, menuOpen, setMenuOpen, cartCount, favoritesCou
               <div className="categories-menu-col" key={col.title}>
                 <h4>{col.title}</h4>
                 {col.items.map((item) => (
-                  <button 
-                    key={item.label} 
-                    onClick={() => { 
-                      setDropdownOpen(false); 
-                      navigate(item.target, item.filter); 
+                  <button
+                    key={item.label}
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      navigate(item.target, item.filter);
                     }}
                   >
                     {item.label}
@@ -376,7 +376,7 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
     <section className="statement"><p className="eyebrow light">Our philosophy</p><blockquote>“Every detail should feel <em>intentional.</em><br />Every client should leave feeling <em>royal.</em>”</blockquote><p>{BRAND.about}</p></section>
     <section className="section shop-preview"><SectionHead kicker="The beauty shelf" title="Your crown, cared for." action="Shop all" onAction={() => navigate("shop")} /><div className="product-grid">{PRODUCTS.map((product) => <ProductCard key={product.id} product={product} add={addToCart} isFav={favorites.includes(product.id)} toggleFav={toggleFavorite} />)}</div></section>
     <section className="experience"><div><p className="eyebrow">Beauty comes to you</p><h2>The salon experience,<br /><em>at your door.</em></h2></div><div><p>Professional beauty service, wherever you feel most at ease. Select home service when booking and we’ll take care of the rest.</p><button className="pill light" onClick={() => navigate("services")}>Book home service <ArrowRight size={17} /></button></div></section>
-    
+
     {/* Client Notes: two-up desktop, single-card mobile carousel */}
     <section className="section testimonials">
       <div className="section-head testimonial-heading" style={{ alignItems: "center" }}>
@@ -410,12 +410,12 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
 }
 
 function CrownMarkIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/><circle cx="12" cy="17" r="1"/></svg>;
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z" /><circle cx="12" cy="17" r="1" /></svg>;
 }
 
 function SectionHead({ kicker, title, action, onAction }: { kicker: string; title: string; action?: string; onAction?: () => void }) { return <div className="section-head"><div><p className="eyebrow">{kicker}</p><h2>{title}</h2></div>{action && <button className="text-button" onClick={onAction}>{action} <ArrowRight size={16} /></button>}</div>; }
 
-function ServiceCard({ service, index, book, isFav, toggleFav }: { service: Service; index: number; book: (s: Service) => void; isFav?: boolean; toggleFav?: (id: string) => void }) { 
+function ServiceCard({ service, index, book, isFav, toggleFav }: { service: Service; index: number; book: (s: Service) => void; isFav?: boolean; toggleFav?: (id: string) => void }) {
   return <article className="service-card">
     <div className={`service-visual tone-${index + 1}`}>
       <span>0{index + 1}</span>
@@ -433,31 +433,31 @@ function ServiceCard({ service, index, book, isFav, toggleFav }: { service: Serv
       <p>{service.description}</p>
       <footer><strong>{service.consultation ? "Consultation" : `From ${money(service.price)}`}</strong><button onClick={() => book(service)}>{service.consultation ? "Request" : "Book"} <ArrowRight size={16} /></button></footer>
     </div>
-  </article>; 
+  </article>;
 }
 
-function ProductCard({ product, add, isFav, toggleFav }: { product: Product; add: (p: Product) => void; isFav?: boolean; toggleFav?: (id: string) => void }) { 
+function ProductCard({ product, add, isFav, toggleFav }: { product: Product; add: (p: Product) => void; isFav?: boolean; toggleFav?: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   return <>
     <article className="product-card" onClick={() => setExpanded(true)} style={{ cursor: "pointer" }}>
       <div className={`product-visual ${product.tone}`}>
         <span className="product-shape">G</span>
-        
+
         {/* Right vertical action stack (+ and heart) with identical glass style */}
         <div className="product-actions-stack" onClick={(e) => e.stopPropagation()}>
           {toggleFav && (
-            <button 
-              className={`product-action-glass ${isFav ? "active" : ""}`} 
-              onClick={() => toggleFav(product.id)} 
+            <button
+              className={`product-action-glass ${isFav ? "active" : ""}`}
+              onClick={() => toggleFav(product.id)}
               aria-label="Toggle wishlist"
             >
               <Heart size={16} fill={isFav ? "currentColor" : "none"} />
             </button>
           )}
-          <button 
-            className="product-action-glass" 
-            onClick={() => add(product)} 
+          <button
+            className="product-action-glass"
+            onClick={() => add(product)}
             aria-label={`Add ${product.name} to cart`}
           >
             <Plus size={16} />
@@ -480,7 +480,7 @@ function ProductCard({ product, add, isFav, toggleFav }: { product: Product; add
       <div className="overlay quickview-overlay" onMouseDown={() => setExpanded(false)}>
         <aside className="quickview-drawer" onMouseDown={e => e.stopPropagation()}>
           <button className="ref-close-btn quickview-close" onClick={() => setExpanded(false)} aria-label="Close panel"><X size={18} /></button>
-          
+
           <div className={`quickview-image-container ${product.tone}`}>
             <span className="product-shape" aria-hidden="true">G</span>
             {product.badge && <span className="product-inline-badge quickview-badge">{product.badge}</span>}
@@ -490,7 +490,7 @@ function ProductCard({ product, add, isFav, toggleFav }: { product: Product; add
             <span className="quickview-category">{product.category}</span>
             <h2 className="quickview-title">{product.name}</h2>
             <p className="quickview-desc">{product.description}</p>
-            
+
             <div className="quickview-price-block">
               <strong className="quickview-price">{money(product.price)}</strong>
               <small className="quickview-tax-note">Tax included • Studio shipping calculated at checkout</small>
@@ -587,7 +587,7 @@ function WishlistPage({ favorites, addToCart, toggleFavorite, book }: { favorite
     <section className="section catalog">
       {savedProducts.length === 0 && savedServices.length === 0 ? (
         <div className="empty-state" style={{ padding: "80px 20px" }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: "0 auto 16px", opacity: 0.6 }}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: "0 auto 16px", opacity: 0.6 }}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>
           <h3 style={{ font: "500 32px var(--display)", margin: "8px 0" }}>Your wishlist is empty</h3>
           <p style={{ color: "#777", marginBottom: 24 }}>Explore our shop collection and save your favorites.</p>
         </div>
@@ -619,7 +619,7 @@ function PageHero({ variant, number, kicker, title, italic, text }: { variant: "
 
 function TrackPage() {
   const [activeTab, setActiveTab] = useState<"order" | "booking">("order");
-  
+
   // Track Order state
   const [orderRef, setOrderRef] = useState("");
   const [orderCredential, setOrderCredential] = useState("");
@@ -763,14 +763,14 @@ function TrackPage() {
     <section className="track-section">
       <div className="track-card">
         <div className="track-subpage-tabs">
-          <button 
+          <button
             className={`track-tab-btn ${activeTab === "order" ? "active" : ""}`}
             onClick={() => setActiveTab("order")}
           >
             <Package size={18} />
             <span>Track Order</span>
           </button>
-          <button 
+          <button
             className={`track-tab-btn ${activeTab === "booking" ? "active" : ""}`}
             onClick={() => setActiveTab("booking")}
           >
@@ -782,7 +782,7 @@ function TrackPage() {
         {activeTab === "order" ? (
           <div className="track-subpage">
             <p className="track-intro">Enter your Order ID (e.g. <strong>GB-2026-002</strong>) and your phone or email to track your delivery status.</p>
-            
+
             <form onSubmit={handleTrackOrder} className="track-form" style={{ marginTop: 24 }}>
               <div className="two-col" style={{ marginBottom: 16 }}>
                 <label>ORDER ID / REFERENCE
@@ -1021,12 +1021,12 @@ function TrackPage() {
               </div>
 
               <label>New Appointment Date
-                <input 
-                  type="date" 
-                  required 
+                <input
+                  type="date"
+                  required
                   min={new Date().toISOString().split("T")[0]}
-                  value={newDate} 
-                  onChange={e => setNewDate(e.target.value)} 
+                  value={newDate}
+                  onChange={e => setNewDate(e.target.value)}
                 />
               </label>
 
@@ -1055,7 +1055,7 @@ function TrackPage() {
   </>;
 }
 
-function PoliciesPage() { 
+function PoliciesPage() {
   const [reviews, setReviews] = useState(TESTIMONIALS);
   const [newReview, setNewReview] = useState({ name: "", service: "", quote: "", rating: 5 });
   const [submitted, setSubmitted] = useState(false);
@@ -1075,19 +1075,19 @@ function PoliciesPage() {
       <div>
         {/* Navigation Tabs for Reorganized Layout */}
         <div className="track-subpage-tabs policy-tab-bar" style={{ marginBottom: 32 }}>
-          <button 
+          <button
             className={`track-tab-btn ${activeTab === "policies" ? "active" : ""}`}
             onClick={() => setActiveTab("policies")}
           >
             <span>Studio Guidelines</span>
           </button>
-          <button 
+          <button
             className={`track-tab-btn ${activeTab === "faqs" ? "active" : ""}`}
             onClick={() => setActiveTab("faqs")}
           >
             <span>FAQs</span>
           </button>
-          <button 
+          <button
             className={`track-tab-btn ${activeTab === "review" ? "active" : ""}`}
             onClick={() => setActiveTab("review")}
           >
@@ -1172,7 +1172,7 @@ function PoliciesPage() {
         <p className="eyebrow light">Customer Support</p>
         <h2>Let’s make it easy.</h2>
         <p>Talk to our team before booking if you need extra time, accessibility support or a special arrangement.</p>
-        
+
         <div className="support-meta-details">
           <span>🕐 Open Mon – Sat: 8:00 AM – 7:00 PM</span>
           <span>⚡ Average response time: under 15 mins</span>
@@ -1366,22 +1366,22 @@ function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; clos
   const [loading, setLoading] = useState(false);
   const [homeService, setHomeService] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", date: "", time: "", stylist: "", address: "", notes: "" });
-  
+
   const service = modal.service;
   const total = (service?.price || 0) + (homeService ? BRAND.homeSurcharge : 0);
   const due = modal.kind === "booking" ? Math.ceil(total * BRAND.depositPercent / 100) : total;
-  
+
   const change = (key: keyof typeof form, value: string) => setForm((x) => ({ ...x, [key]: value }));
-  
-  const submit = async (e: React.FormEvent) => { 
-    e.preventDefault(); 
-    setLoading(true); 
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
     const table = modal.kind === "consultation" ? "consultation_requests" : "bookings";
     const payload = modal.kind === "consultation" ? { name: form.name, phone: form.phone, email: form.email, service_id: service?.id, service_name: service?.name, notes: form.notes, status: "new" } : { name: form.name, phone: form.phone, email: form.email, service_id: service?.id, service_name: service?.name, appointment_date: form.date, appointment_time: form.time, stylist_preference: form.stylist, home_service: homeService, address: form.address, notes: form.notes, total_amount: total, deposit_amount: due, status: "pending_payment" };
-    const { error } = await insertRecord(table, payload); 
-    setLoading(false); 
+    const { error } = await insertRecord(table, payload);
+    setLoading(false);
     if (error) return alert(error);
-    complete(modal.kind === "consultation" ? "Consultation request received. We’ll call you shortly." : `Thank you, ${form.name.split(" ")[0] || "queen"}. Your request is confirmed.`); 
+    complete(modal.kind === "consultation" ? "Consultation request received. We’ll call you shortly." : `Thank you, ${form.name.split(" ")[0] || "queen"}. Your request is confirmed.`);
   };
 
   return (
@@ -1392,7 +1392,7 @@ function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; clos
           <p className="eyebrow">{modal.kind === "consultation" ? "Let’s talk" : "Reserve your time"}</p>
           <h2 id="flow-modal-title">{service?.name}</h2>
           <p>{modal.kind === "consultation" ? "Tell us what you have in mind and our team will reach out with the best next step." : "A few details, then your beauty moment is secured."}</p>
-          
+
           <div className="modal-highlights">
             <span>✧ Studio consultation & prep</span>
             <span>✧ Premium Ghana-imported products</span>
@@ -1410,7 +1410,7 @@ function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; clos
             <label>PHONE / WHATSAPP<input required value={form.phone} onChange={(e) => change("phone", e.target.value)} placeholder="055 000 0000" /></label>
           </div>
           <label>EMAIL<input type="email" value={form.email} onChange={(e) => change("email", e.target.value)} placeholder="you@example.com" /></label>
-          
+
           {modal.kind === "booking" && (
             <>
               <div className="two-col">
@@ -1472,8 +1472,8 @@ export function AdminPage() {
                 <input autoComplete="current-password" type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" />
                 <button type="button" className="eye-toggle" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? "Hide password" : "Show password"}>
                   {showPassword
-                    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                   }
                 </button>
               </div>
@@ -1489,7 +1489,7 @@ export function AdminPage() {
   );
 
   const tabs = ["Dashboard", "Services", "Products", "Bookings", "Consultations", "Orders", "Reviews"];
-  
+
   return (
     <section className="admin-shell">
       <aside className="admin-sidebar">
@@ -1519,14 +1519,14 @@ export function AdminPage() {
   );
 }
 
-function Dashboard() { 
-  const stats = [["Active Bookings", "06", "Real-time appointments"], ["Pending Orders", "04", "Ready to dispatch"], ["Total Revenue", "GH₵ 8,420", "Live Paystack data"], ["Consultations", "03", "Awaiting response"]]; 
+function Dashboard() {
+  const stats = [["Active Bookings", "06", "Real-time appointments"], ["Pending Orders", "04", "Ready to dispatch"], ["Total Revenue", "GH₵ 8,420", "Live Paystack data"], ["Consultations", "03", "Awaiting response"]];
   return <><div className="stat-grid">{stats.map((x) => <article key={x[0]}><span>{x[0]}</span><strong>{x[1]}</strong><small>{x[2]}</small></article>)}</div><div className="admin-panels"><section><header><h2>Today’s scheduled appointments</h2><button>View all</button></header>{["Akosua Mensah", "Mabel Ofori", "Dede Boateng"].map((x, i) => <div className="appointment" key={x}><time>{["09:00", "11:30", "14:00"][i]}</time><span><strong>{x}</strong><small>{SERVICES[i].name}</small></span><b className={i === 0 ? "confirmed" : "pending"}>{i === 0 ? "Confirmed" : "Pending"}</b></div>)}</section><section className="quick-panel"><header><h2>System Status</h2></header><div><span>Services live</span><strong>{SERVICES.length}</strong></div><div><span>Products live</span><strong>{PRODUCTS.length}</strong></div><div><span>Reviews live</span><strong>{TESTIMONIALS.length}</strong></div></section></div></>;
 }
 
-function AdminTable({ title }: { title: string }) { 
+function AdminTable({ title }: { title: string }) {
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   let rows: [string, string, string, string][] = [];
   if (title === "Products") {
     rows = PRODUCTS.map((x) => [x.name, x.category, money(x.price), "Active"]);
@@ -1583,14 +1583,14 @@ function AdminTable({ title }: { title: string }) {
   );
 }
 
-function Footer({ navigate }: { navigate: (v: View) => void }) { 
+function Footer({ navigate }: { navigate: (v: View) => void }) {
   return <footer className="footer"><div className="footer-main"><div><CrownMark /><p>{BRAND.tagline}</p>
     <div className="socials">
       <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></svg>
       </a>
       <a href={`https://wa.me/${BRAND.whatsapp}`} target="_blank" rel="noreferrer" aria-label="WhatsApp">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" /><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1" /></svg>
       </a>
     </div>
   </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div className="footer-hours"><small>OPENING HOURS</small><p><strong>Mon to Sat</strong><br />8:00am, 7:00pm</p><p><strong>Sunday</strong><br />12:00pm, 7:00pm</p></div></div><div className="footer-bottom"><span>© 2026 Gailant Beauty</span><button onClick={() => navigate("policies")}>Policies & terms</button><span>Beauty, crowned.</span></div></footer>;
