@@ -5,18 +5,6 @@ import handler from "vinext/server/app-router-entry";
 interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
-  IMAGES: {
-    input(stream: ReadableStream): {
-      transform(options: Record<string, unknown>): {
-        output(options: { format: string; quality: number }): Promise<{ response(): Response }>;
-      };
-    };
-  };
-}
-
-interface ExecutionContext {
-  waitUntil(promise: Promise<unknown>): void;
-  passThroughOnException(): void;
 }
 
 // Image security config. SVG sources with .svg extension auto-skip the
@@ -40,10 +28,9 @@ const worker = {
           return fetch(assetUrl);
         },
         transformImage: async (body, { width, format, quality }) => {
-          if (env?.IMAGES?.input) {
-            const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
-            return result.response();
-          }
+          // Cloudflare Image Resizing: pass cf.image options on a subrequest.
+          // The IMAGES binding does not exist — transformations are handled via
+          // the cf.image fetch option on Workers that have Image Resizing enabled.
           return new Response(body);
         },
       }, allowedWidths);
