@@ -44,7 +44,7 @@ const worker = {
           // Cloudflare Image Resizing: pass cf.image options on a subrequest.
           // The IMAGES binding does not exist — transformations are handled via
           // the cf.image fetch option on Workers that have Image Resizing enabled.
-          return new Response(body);
+          return new Response(_body);
         },
       }, allowedWidths);
     }
