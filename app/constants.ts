@@ -3,7 +3,11 @@ export const BRAND = {
   tagline: "Where Beauty Wears a Crown",
   description: "Gailant Beauty is Abeka's studio for nails, hair, lashes and makeup, polished, professional beauty, in-studio or delivered to your door.",
   about: "Gailant Beauty is a beauty studio in Abeka built around one idea: every client should leave feeling like royalty. From nails and braids to lashes, makeup and beyond, our stylists bring skill and care to every appointment, whether you come to us or we come to you. Beauty, crowned.",
-  location: "Abeka Free Pipe Junction, Accra",
+  location: "Abeka Free Pipe Junction, Abeka Road, Accra",
+  mapsUrl: "https://maps.google.com/?q=Gailant+Beauty+Abeka+Road+Accra",
+  instagramUrl: "https://instagram.com/gailantbeauty",
+  instagramHandle: "@gailantbeauty",
+  rating: "5.0 ★ (Google Verified Studio)",
   primaryPhone: "0554980760",
   secondaryPhone: "0208228030",
   whatsapp: "233554980760",
@@ -217,6 +221,7 @@ export const FAQS = [
 ];
 
 export const TESTIMONIALS = [
+  { quote: "Abigail is incredibly skilled and professional. My frontal installation and bridal makeover were flawless and lasted all day! 5 stars!", name: "Antwi A.", service: "Bridal Makeup & Frontal Install", rating: 5, verified: "5.0 ★ Google Review" },
   { quote: "From the welcome to the final look, everything felt considered. My nails were immaculate and lasted beautifully.", name: "Ama K.", service: "Signature Gel Set", rating: 5 },
   { quote: "The home service was punctual, professional and so convenient. I felt completely taken care of.", name: "Nana A.", service: "Soft Glam", rating: 5 },
   { quote: "My braids are neat, light and exactly what I showed them. Gailant is now my beauty home.", name: "Esi M.", service: "Knotless Braids", rating: 5 },

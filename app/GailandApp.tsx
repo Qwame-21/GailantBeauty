@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Truck, X } from "lucide-react";
+import { ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, MapPin, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Truck, X } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
 import { insertRecord, signInAdmin, trackReference, updateRecord } from "./lib/supabase";
 import { GAILAND_DATA_EVENT, loadCatalog, patchLocalRecord } from "./lib/gailand-store";
@@ -133,7 +133,7 @@ export function GailantApp() {
     <Footer navigate={navigate} />
     <FloatingTrioWidget cartCount={count} favoritesCount={favorites.length} openCart={() => setCartOpen(true)} navigate={navigate} />
     {searchOpen && <SearchModal close={() => setSearchOpen(false)} navigate={(v) => { setSearchOpen(false); navigate(v); }} />}
-    {cartOpen && <CartDrawer cart={cart} close={() => setCartOpen(false)} update={updateCart} complete={(message) => { setCartOpen(false); setCart([]); setNotice(message); }} />}
+    {cartOpen && <CartDrawer cart={cart} close={() => setCartOpen(false)} update={updateCart} complete={(message) => { setCartOpen(false); setCart([]); setNotice(message); }} navigate={navigate} />}
     {modal && <FlowModal modal={modal} close={() => setModal(null)} complete={(message) => { setModal(null); setNotice(message); }} />}
     {notice && <div className="toast" role="status" aria-live="polite"><Check size={17} />{notice}<button aria-label="Close notification" onClick={() => setNotice("")}><X size={16} /></button></div>}
   </div>;
@@ -156,7 +156,16 @@ function SearchModal({ close, navigate }: { close: () => void; navigate: (v: Vie
         </div>
         {!term && <div className="search-suggestions">
           <small>POPULAR SEARCHES</small>
-          <div>{["Nails", "Hair", "Lashes", "Makeup", "Wigs"].map(item => <button key={item} onClick={() => setQ(item)}>{item}</button>)}</div>
+          <ul className="search-popular-list">
+            {["Nails", "Hair", "Lashes", "Makeup", "Wigs"].map(item => (
+              <li key={item}>
+                <button type="button" onClick={() => setQ(item)}>
+                  <span>{item}</span>
+                  <ArrowRight size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>}
         {results.length > 0 && <div className="search-results">
           {results.map((r, i) => <button key={i} className="search-result-row" onClick={r.action}>
@@ -345,11 +354,20 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite }: { naviga
         <p className="hero-text">{BRAND.description}</p>
         <div className="hero-actions">
           <button className="hero-btn-primary" onClick={() => navigate("services")} id="hero-cta-services">
-            <CrownMarkIcon /> FIND YOUR SERVICE <ArrowRight size={15} />
+            <CrownMarkIcon />
+            <span>FIND YOUR SERVICE</span>
+            <ArrowRight size={14} />
           </button>
           <button className="hero-btn-secondary" onClick={() => navigate("shop")} id="hero-cta-shop">
-            <ShoppingBag size={14} /> SHOP OUR CATALOG <ArrowRight size={15} />
+            <ShoppingBag size={14} />
+            <span>SHOP CATALOG</span>
+            <ArrowRight size={14} />
           </button>
+          <a className="hero-btn-secondary hero-btn-location" href={BRAND.mapsUrl} target="_blank" rel="noreferrer" id="hero-cta-location">
+            <MapPin size={14} />
+            <span>GET DIRECTIONS</span>
+            <ArrowRight size={14} />
+          </a>
         </div>
       </div>
 
@@ -1187,7 +1205,7 @@ function PoliciesPage() {
   </>;
 }
 
-function CartDrawer({ cart, close, update, complete }: { cart: CartLine[]; close: () => void; update: (id: string, n: number) => void; complete: (message: string) => void }) {
+function CartDrawer({ cart, close, update, complete, navigate }: { cart: CartLine[]; close: () => void; update: (id: string, n: number) => void; complete: (message: string) => void; navigate: (v: View) => void }) {
   const [step, setStep] = useState<"bag" | "checkout">("bag");
   const [loading, setLoading] = useState(false);
   const [countryCode, setCountryCode] = useState("+233");
@@ -1238,10 +1256,13 @@ function CartDrawer({ cart, close, update, complete }: { cart: CartLine[]; close
       {step === "bag" ? <>
         <div className="cart-lines ref-cart-lines">
           {cart.length === 0 ? (
-            <div className="empty-state">
-              <ShoppingBag size={44} style={{ color: "#bd8427", marginBottom: 14 }} />
+            <div className="empty-state cart-empty-centered">
+              <ShoppingBag size={48} style={{ color: "#bd8427", margin: "0 auto 16px" }} />
               <h3>Your bag is empty</h3>
               <p>Discover studio-approved wigs, tools and beauty essentials.</p>
+              <button className="pill light cart-shop-cta" onClick={() => { close(); navigate("shop"); }}>
+                Explore Shop Catalog <ArrowRight size={15} />
+              </button>
             </div>
           ) : (
             cart.map((x) => (
@@ -1385,9 +1406,15 @@ function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; clos
   };
 
   return (
-    <div className="overlay modal-overlay" onMouseDown={close}>
-      <div className="flow-modal" role="dialog" aria-modal="true" aria-labelledby="flow-modal-title" onMouseDown={(event) => event.stopPropagation()}>
-        <button className="modal-close" onClick={close} aria-label="Close"><X /></button>
+    <div className="flow-modal-fullpage" role="dialog" aria-modal="true" aria-labelledby="flow-modal-title">
+      <div className="fullpage-bar">
+        <button className="fullpage-close-btn" onClick={close}>
+          <X size={18} />
+          <span>CLOSE PAGE</span>
+        </button>
+        <span className="fullpage-brand-title">GAILANT BEAUTY • SERVICE BOOKING</span>
+      </div>
+      <div className="flow-modal flow-modal-inner" onMouseDown={(event) => event.stopPropagation()}>
         <div className="modal-intro">
           <p className="eyebrow">{modal.kind === "consultation" ? "Let’s talk" : "Reserve your time"}</p>
           <h2 id="flow-modal-title">{service?.name}</h2>
@@ -1438,7 +1465,7 @@ function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; clos
             </>
           )}
 
-          <label>NOTES <span>OPTIONAL</span><textarea value={form.notes} onChange={(e) => change("notes", e.target.value)} placeholder="Anything we should know?" /></label>
+          <label>NOTES <span>OPTIONAL</span><textarea value={form.notes} onChange={(e) => change("notes", e.target.value)} placeholder="Anything we should know?" className="squared-textarea" /></label>
           <button className="pill dark full" disabled={loading}>{loading ? "Please wait…" : modal.kind === "consultation" ? "Send consultation request" : `Continue to Paystack • ${money(due)}`}</button>
           {modal.kind !== "consultation" && <small className="secure-note">Secure payment • Paystack • MoMo & cards accepted</small>}
         </form>
@@ -1586,12 +1613,12 @@ function AdminTable({ title }: { title: string }) {
 function Footer({ navigate }: { navigate: (v: View) => void }) {
   return <footer className="footer"><div className="footer-main"><div><CrownMark /><p>{BRAND.tagline}</p>
     <div className="socials">
-      <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram">
+      <a href={BRAND.instagramUrl} target="_blank" rel="noreferrer" aria-label="Instagram">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></svg>
       </a>
       <a href={`https://wa.me/${BRAND.whatsapp}`} target="_blank" rel="noreferrer" aria-label="WhatsApp">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" /><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1" /></svg>
       </a>
     </div>
-  </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div className="footer-hours"><small>OPENING HOURS</small><p><strong>Mon to Sat</strong><br />8:00am, 7:00pm</p><p><strong>Sunday</strong><br />12:00pm, 7:00pm</p></div></div><div className="footer-bottom"><span>© 2026 Gailant Beauty</span><button onClick={() => navigate("policies")}>Policies & terms</button><span>Beauty, crowned.</span></div></footer>;
+  </div><div><small>EXPLORE</small><button onClick={() => navigate("services")}>Services</button><button onClick={() => navigate("shop")}>Shop</button><button onClick={() => navigate("track")}>Track</button></div><div><small>VISIT & CONTACT</small><p>{BRAND.location}</p><a href={BRAND.mapsUrl} target="_blank" rel="noreferrer" className="footer-location-link"><MapPin size={13} /> Get Directions on Google Maps</a><a href={`tel:${BRAND.primaryPhone}`}>{BRAND.primaryPhone}</a><a href={`tel:${BRAND.secondaryPhone}`}>{BRAND.secondaryPhone}</a></div><div className="footer-hours"><small>OPENING HOURS</small><p><strong>Mon to Sat</strong><br />8:00am, 7:00pm</p><p><strong>Sunday</strong><br />12:00pm, 7:00pm</p></div></div><div className="footer-bottom"><span>© 2026 Gailant Beauty • {BRAND.rating}</span><button onClick={() => navigate("policies")}>Policies & terms</button><span>Beauty, crowned.</span></div></footer>;
 }
