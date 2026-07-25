@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, MapPin, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, MapPin, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Truck, X } from "lucide-react";
 import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
 import { insertRecord, signInAdmin, trackReference, updateRecord } from "./lib/supabase";
 import { GAILAND_DATA_EVENT, loadCatalog, patchLocalRecord } from "./lib/gailand-store";
@@ -535,15 +535,11 @@ function ServiceCard({ service, index, book, isFav, toggleFav }: { service: Serv
 }
 
 function ProductCard({ product, add, isFav, toggleFav, openProductDetail }: { product: Product; add: (p: Product) => void; isFav?: boolean; toggleFav?: (id: string) => void; openProductDetail: (product: Product) => void }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return <>
     <article 
       className="luxury-product-card" 
       onClick={() => openProductDetail(product)} 
       style={{ cursor: "pointer" }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`luxury-product-visual ${product.tone}`}>
         <span className="luxury-product-shape">G</span>
@@ -571,7 +567,7 @@ function ProductCard({ product, add, isFav, toggleFav, openProductDetail }: { pr
         <div className="luxury-product-specs">
           {product.subCategory && <span className="luxury-spec-pill">{product.subCategory}</span>}
           <span className="luxury-spec-pill">•</span>
-          <span className="luxury-spec-pill">24"</span>
+          <span className="luxury-spec-pill">24&quot;</span>
           <span className="luxury-spec-pill">•</span>
           <span className="luxury-spec-pill">HD Lace</span>
           <span className="luxury-spec-pill">•</span>
@@ -602,8 +598,9 @@ function ServicesPage({ book, favorites, toggleFavorite, initialFilter }: { book
   const categories = ["All", "Nails", "Hair", "Lashes", "Makeup", "Brows", "Locs", "Long Hair", "Short Hair", "Treatments"];
   const list = SERVICES.filter(s => filter === "All" || s.category === filter || s.subCategory === filter);
 
-  return <><PageHero variant="services" number="01" kicker="Services menu" title="Curated for your" italic="crowning moment." text="Detailed gel sets, braids, silk press and customized lash applications in Accra." />
+  return <><PageHero variant="services" number="01" title="Curated for your" italic="crowning moment." text="Detailed gel sets, braids, silk press and customized lash applications in Accra." />
     <section className="section catalog">
+      <p className="eyebrow" style={{ marginBottom: "32px" }}>Services menu</p>
       <div className="filter-row">
         {categories.map(c => <button key={c} className={filter === c ? "active" : ""} onClick={() => setFilter(c)}>{c}</button>)}
       </div>
@@ -633,8 +630,9 @@ function ShopPage({ addToCart, favorites, toggleFavorite, initialFilter, openPro
     return matchesFilter && matchesSearch;
   });
 
-  return <><PageHero variant="shop" number="02" kicker="The shop" title="Beauty that keeps" italic="giving." text="Studio-approved wigs, tools and essentials, selected to make every day feel polished." />
+  return <><PageHero variant="shop" number="02" title="Beauty that keeps" italic="giving." text="Studio-approved wigs, tools and essentials, selected to make every day feel polished." />
     <section className="section catalog">
+      <p className="eyebrow" style={{ marginBottom: "32px" }}>The shop</p>
       <div className="shop-controls-bar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
         <div className="filter-row" style={{ margin: 0 }}>
           {categories.map(c => <button key={c} className={filter === c ? "active" : ""} onClick={() => setFilter(c)}>{c}</button>)}
@@ -667,8 +665,9 @@ function WishlistPage({ favorites, addToCart, toggleFavorite, book, openProductD
   const savedProducts = PRODUCTS.filter((p) => favorites.includes(p.id));
   const savedServices = SERVICES.filter((s) => favorites.includes(s.id));
 
-  return <><PageHero variant="wishlist" number="02" kicker="Saved pieces" title="Your personal" italic="wishlist." text="Keep track of your favorite beauty pieces and studio essentials." />
+  return <><PageHero variant="wishlist" number="02" title="Your personal" italic="wishlist." text="Keep track of your favorite beauty pieces and studio essentials." />
     <section className="section catalog">
+      <p className="eyebrow" style={{ marginBottom: "32px" }}>Saved pieces</p>
       {savedProducts.length === 0 && savedServices.length === 0 ? (
         <div className="empty-state" style={{ padding: "80px 20px" }}>
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: "0 auto 16px", opacity: 0.6 }}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>
@@ -699,10 +698,10 @@ function WishlistPage({ favorites, addToCart, toggleFavorite, book, openProductD
   </>;
 }
 
-function PageHero({ variant, number, kicker, title, italic, text }: { variant: "services" | "shop" | "wishlist" | "track" | "policies"; number: string; kicker: string; title: string; italic: string; text: string }) { return <section className={`page-hero page-hero-${variant}`}><span>{number}</span><div><p className="eyebrow">{kicker}</p><h1>{title}<br /><em>{italic}</em></h1></div><p>{text}</p></section>; }
+function PageHero({ variant, number, title, italic, text }: { variant: "services" | "shop" | "wishlist" | "track" | "policies"; number: string; kicker?: string; title: string; italic: string; text: string }) { return <section className={`page-hero page-hero-${variant}`}><span>{number}</span><div><h1>{title}<br /><em>{italic}</em></h1></div><p>{text}</p></section>; }
 
 function TrackPage() {
-  const [activeTab, setActiveTab] = useState<"order" | "booking">("order");
+  const [activeTab, setActiveTab] = useState<"orders" | "bookings">("orders");
 
   // Track Order state
   const [orderRef, setOrderRef] = useState("");
@@ -736,7 +735,7 @@ function TrackPage() {
     const found = live.data || MOCK_TRACKING_DATABASE[cleanRef] || null;
     if (found && found.type !== "Order") {
       setOrderRecord(null);
-      setOrderError(`Reference "${cleanRef}" is a Booking record. Switch to the "Track Service" tab.`);
+      setOrderError(`Reference "${cleanRef}" is a Booking record. Switch to the "Track Appointment / Service" tab.`);
     } else {
       setOrderRecord(found as TrackingRecord | null);
     }
@@ -786,7 +785,6 @@ function TrackPage() {
           type: "booking_modification"
         },
         onSuccess: async (paymentRef) => {
-          // Update DB / store on payment success
           const updatePayload = {
             appointment_date: newDate,
             appointment_time: newTime,
@@ -800,7 +798,6 @@ function TrackPage() {
             patchLocalRecord("bookings", bookingRecord.reference, updatePayload);
           }
 
-          // Update local state
           setBookingRecord(prev => prev ? {
             ...prev,
             status: "Rescheduled",
@@ -840,343 +837,318 @@ function TrackPage() {
     { key: "booked", label: "Booked", icon: Calendar },
     { key: "review", label: "Under Review", icon: Clock },
     { key: "confirmed", label: "Confirmed", icon: ShieldCheck },
-    { key: "completed", label: "Completed", icon: Sparkles }
+    { key: "completed", label: "Completed", icon: Check }
   ];
 
-  return <><PageHero variant="track" number="03" kicker="Track with ease" title="Know what's" italic="next." text="Real-time order delivery status and appointment schedule tracking." />
-    <section className="track-section">
-      <div className="track-card">
-        <div className="track-subpage-tabs" id="track-tabs-container">
-          <button
-            className={`track-tab-btn ${activeTab === "order" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("order");
-              setTimeout(() => {
-                document.getElementById("track-tabs-container")?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }, 80);
-            }}
-          >
-            <Package size={18} />
-            <span>Track Order</span>
-          </button>
-          <button
-            className={`track-tab-btn ${activeTab === "booking" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("booking");
-              setTimeout(() => {
-                document.getElementById("track-tabs-container")?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }, 80);
-            }}
-          >
-            <Calendar size={18} />
-            <span>Track Service</span>
-          </button>
-        </div>
+  return (
+    <>
+      <PageHero variant="track" number="03" title="Know what's" italic="next." text="Real-time order delivery status and appointment schedule tracking." />
 
-        {activeTab === "order" ? (
-          <div className="track-subpage">
-            <p className="track-intro">Enter your Order ID and the phone number or email used at checkout</p>
+      <div className="track-page-shell">
+        <p className="eyebrow" style={{ marginBottom: "32px" }}>Track with ease</p>
+        {/* ── LEFT COLUMN ─────────────────────────────── */}
+        <div className="track-main-col">
 
-            <form onSubmit={handleTrackOrder} className="track-form-slay">
-              <div className="track-field-group">
-                <label className="track-field-label">ORDER ID</label>
-                <input
-                  required
-                  value={orderRef}
-                  onChange={(e) => setOrderRef(e.target.value)}
-                  placeholder="e.g. SLY-XXXXXX"
-                  className="track-field-input"
-                />
-              </div>
-              <div className="track-field-group">
-                <label className="track-field-label">PHONE NUMBER OR EMAIL</label>
-                <div className="track-input-track-row">
-                  <input
-                    value={orderCredential}
-                    onChange={(e) => setOrderCredential(e.target.value)}
-                    placeholder="e.g. 024... or customer@mail.com"
-                    className="track-field-input"
-                  />
-                  <button
-                    className="track-pink-btn"
-                    type="submit"
-                    disabled={orderTracking}
-                    onClick={() => { setTimeout(() => { document.querySelector('.track-result, .track-not-found, .tracking-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 600); }}
-                  >
-                    {orderTracking ? "…" : "TRACK"}
-                  </button>
-                </div>
-              </div>
-            </form>
-
-            {orderError && <p className="tracking-error" role="alert">{orderError}</p>}
-
-            {orderSearched && orderRecord && (
-              <div className="track-result order-result-view">
-                {/* 1. Order Details block */}
-                <div className="track-meta-header">
-                  <div>
-                    <span className="order-num-tag">ORDER #{orderRecord.reference}</span>
-                    <h3>{orderRecord.item}</h3>
-                    <p className="client-sub">{orderRecord.clientName} • Placed {orderRecord.orderPlacedDate || orderRecord.date}</p>
-                  </div>
-                  <div className="order-meta-stats">
-                    <div><span>Status</span><strong className={`badge-status ${orderRecord.status.toLowerCase().replace(/\s+/g, '-')}`}>{orderRecord.status}</strong></div>
-                    <div><span>Est. Delivery</span><strong>{orderRecord.orderDeliveredDate || "Pending dispatch"}</strong></div>
-                    <div><span>Items</span><strong>{orderRecord.itemsList?.length || 1}</strong></div>
-                    <button className="invoice-btn" onClick={() => alert("Invoice download starting...")} title="Download Invoice">
-                      <Download size={14} /> Invoice
-                    </button>
-                  </div>
-                </div>
-
-                {/* 2. Order Tracking Timeline */}
-                <div className="timeline-block">
-                  <h4 className="timeline-title">Delivery Progress</h4>
-                  <div className="icon-timeline-row">
-                    {orderStages.map((stg, idx) => {
-                      const currentStageIdx = orderRecord.orderStage ?? 0;
-                      const isComplete = idx <= currentStageIdx;
-                      const isCurrent = idx === currentStageIdx;
-                      const StageIcon = stg.icon;
-                      const timestampInfo = orderRecord.stageTimestamps?.[idx];
-                      return (
-                        <div key={stg.key} className={`icon-timeline-node ${isComplete ? "complete" : "pending"} ${isCurrent ? "current" : ""}`}>
-                          <div className="node-icon-wrapper">
-                            <StageIcon size={20} />
-                            {isComplete && <span className="checkmark-badge"><Check size={10} /></span>}
-                          </div>
-                          <strong>{stg.label}</strong>
-                          <small>{isComplete ? (timestampInfo?.timestamp || "Confirmed") : (timestampInfo?.expected || "Expected")}</small>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 3. Items breakdown */}
-                {orderRecord.itemsList && orderRecord.itemsList.length > 0 && (
-                  <div className="order-items-block">
-                    <h4>Order Summary</h4>
-                    <div className="order-items-table">
-                      {orderRecord.itemsList.map(item => (
-                        <div key={item.id} className="order-item-row">
-                          <div className="item-thumb"><Package size={20} /></div>
-                          <div className="item-info">
-                            <strong>{item.name}</strong>
-                            <small>{item.size ? `Size: ${item.size} • ` : ""}ID: {item.productId}</small>
-                          </div>
-                          <span className="item-qty">Qty: {item.quantity}</span>
-                          <strong className="item-price">{money(item.price * item.quantity)}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 4. Totals */}
-                <div className="order-totals-block">
-                  <div className="totals-row"><span>Subtotal</span><span>{money(orderRecord.subtotal || 0)}</span></div>
-                  <div className="totals-row"><span>Delivery Fee</span><span>{money(orderRecord.deliveryFee || 50)}</span></div>
-                  {Boolean(orderRecord.discount) && <div className="totals-row discount"><span>Discount</span><span>-{money(orderRecord.discount || 0)}</span></div>}
-                  <div className="totals-row grand-total"><span>Total</span><strong>{money(orderRecord.totalAmount || (orderRecord.subtotal || 0) + (orderRecord.deliveryFee || 50))}</strong></div>
-                </div>
-
-                {orderRecord.adminNote && (
-                  <aside className="studio-note"><small>STUDIO UPDATE</small><p>{orderRecord.adminNote}</p></aside>
-                )}
-              </div>
-            )}
-
-            {orderSearched && !orderRecord && !orderError && (
-              <div className="track-not-found">
-                <Package size={36} />
-                <h3>We couldn&apos;t find an order with those details</h3>
-                <p>Please double-check your Order ID (e.g. <strong>GB-2026-002</strong>) and try again. If you continue to have trouble, our studio team is here on WhatsApp.</p>
-                <button className="pill light" onClick={() => { setOrderSearched(false); setOrderRef(""); }}>Try another Order ID</button>
-              </div>
-            )}
+          {/* Pill tab switcher */}
+          <div className="track-pill-switcher">
+            <button
+              type="button"
+              className={`track-pill-btn ${activeTab === "orders" ? "active" : ""}`}
+              onClick={() => setActiveTab("orders")}
+            >
+              <Package size={15} />
+              Track Order
+            </button>
+            <button
+              type="button"
+              className={`track-pill-btn ${activeTab === "bookings" ? "active" : ""}`}
+              onClick={() => setActiveTab("bookings")}
+            >
+              <Calendar size={15} />
+              Track Service
+            </button>
           </div>
-        ) : (
-          <div className="track-subpage">
-            <p className="track-intro">Enter your Booking Code and the phone number or email used at checkout</p>
 
-            <form onSubmit={handleTrackBooking} className="track-form-slay">
-              <div className="track-field-group">
-                <label className="track-field-label">BOOKING CODE</label>
-                <input
-                  required
-                  value={bookingRef}
-                  onChange={(e) => setBookingRef(e.target.value)}
-                  placeholder="e.g. GB-2026-001"
-                  className="track-field-input"
-                />
+          {/* Form card */}
+          <div className="track-form-card">
+            {/* Card header band */}
+            <div className="track-form-card-header">
+              <div className="track-form-card-icon">
+                {activeTab === "orders" ? <Package size={22} /> : <Calendar size={22} />}
               </div>
-              <div className="track-field-group">
-                <label className="track-field-label">PHONE NUMBER OR EMAIL</label>
-                <div className="track-input-track-row">
-                  <input
-                    value={bookingCredential}
-                    onChange={(e) => setBookingCredential(e.target.value)}
-                    placeholder="e.g. 024... or customer@mail.com"
-                    className="track-field-input"
-                  />
-                  <button
-                    className="track-pink-btn"
-                    type="submit"
-                    disabled={bookingTracking}
-                    onClick={() => { setTimeout(() => { document.querySelector('.booking-result-view, .track-not-found, .tracking-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 600); }}
-                  >
-                    {bookingTracking ? "…" : "TRACK"}
-                  </button>
-                </div>
+              <div>
+                <h2 className="track-form-card-title">
+                  {activeTab === "orders" ? "Track Your Order" : "Track Your Service"}
+                </h2>
+                <p className="track-form-card-sub">
+                  {activeTab === "orders"
+                    ? "Enter your Order ID and the contact used at checkout"
+                    : "Enter your Booking Reference and the contact used at booking"}
+                </p>
               </div>
-            </form>
-
-            {bookingError && <p className="tracking-error" role="alert">{bookingError}</p>}
-            {modifyMessage && (
-              <div className={`modify-toast ${modifyMessage.type}`} role="alert">
-                <p>{modifyMessage.text}</p>
-              </div>
-            )}
-
-            {bookingSearched && bookingRecord && (
-              <div className="track-result booking-result-view">
-                <div className="track-meta-header">
-                  <div>
-                    <span className="order-num-tag">BOOKING #{bookingRecord.reference}</span>
-                    <h3>{bookingRecord.item}</h3>
-                    <p className="client-sub">{bookingRecord.clientName} • {bookingRecord.date}</p>
-                  </div>
-                  <div className="order-meta-stats">
-                    <div><span>Status</span><strong className={`badge-status ${bookingRecord.status.toLowerCase().replace(/\s+/g, '-')}`}>{bookingRecord.status}</strong></div>
-                    <div><span>Service Price</span><strong>{money(bookingRecord.servicePrice || 0)}</strong></div>
-                    <div><span>Deposit Paid</span><strong>{money(bookingRecord.depositPaid || 0)}</strong></div>
-                    {(bookingRecord.status === "Confirmed" || bookingRecord.status === "Rescheduled" || bookingRecord.status === "Paid") && (
-                      <button className="pill dark modify-btn" onClick={() => setModifyModalOpen(true)}>
-                        Modify Booking (GH₵ 10)
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Booking Timeline (4 stages) */}
-                <div className="timeline-block">
-                  <h4 className="timeline-title">Appointment Status</h4>
-                  <div className="icon-timeline-row booking-timeline-row">
-                    {bookingStages.map((stg, idx) => {
-                      const currentStageIdx = bookingRecord.bookingStage ?? (bookingRecord.status === "Canceled" ? 1 : 2);
-                      const isComplete = idx <= currentStageIdx && bookingRecord.status !== "Canceled";
-                      const isCurrent = idx === currentStageIdx && bookingRecord.status !== "Canceled";
-                      const StageIcon = stg.icon;
-                      const timestampInfo = bookingRecord.stageTimestamps?.[idx];
-                      return (
-                        <div key={stg.key} className={`icon-timeline-node ${isComplete ? "complete" : "pending"} ${isCurrent ? "current" : ""}`}>
-                          <div className="node-icon-wrapper">
-                            <StageIcon size={20} />
-                            {isComplete && <span className="checkmark-badge"><Check size={10} /></span>}
-                          </div>
-                          <strong>{stg.label}</strong>
-                          <small>{isComplete ? (timestampInfo?.timestamp || "Verified") : (timestampInfo?.expected || "Upcoming")}</small>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {bookingRecord.adminNote && (
-                  <aside className="studio-note"><small>STUDIO NOTE</small><p>{bookingRecord.adminNote}</p></aside>
-                )}
-
-                {bookingRecord.status === "Canceled" && (
-                  <aside className="refund-note"><small>CANCELLATION &amp; REFUND</small><p>{bookingRecord.refundNote || "Appointment canceled. Deposit status processed according to studio policy."}</p></aside>
-                )}
-              </div>
-            )}
-
-            {bookingSearched && !bookingRecord && !bookingError && (
-              <div className="track-not-found">
-                <Calendar size={36} />
-                <h3>We couldn&apos;t find a booking with those details</h3>
-                <p>Please check your Booking Code (e.g. <strong>GB-2026-001</strong>) and try again. For assistance, reach out via WhatsApp.</p>
-                <button className="pill light" onClick={() => { setBookingSearched(false); setBookingRef(""); }}>Try another code</button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <aside className="support-card-compact track-sidebar">
-        <p className="eyebrow light">Customer Support</p>
-        <h3>We&apos;re one message away.</h3>
-        <p>Need to modify your appointment or inquire about home delivery? Chat directly with our Abeka studio team.</p>
-
-        <div className="support-meta-details">
-          <span><Clock size={14} /> Open Mon – Sat: 8:00 AM – 7:00 PM</span>
-          <span><Sparkles size={14} /> Average response time: under 15 mins</span>
-        </div>
-
-        <div className="support-card-actions">
-          <a href={`https://wa.me/${BRAND.whatsapp}`} target="_blank" rel="noreferrer" className="pill light">
-            Chat on WhatsApp <ArrowRight size={16} />
-          </a>
-          <a href={`tel:${BRAND.primaryPhone}`} className="pill light">Call {BRAND.primaryPhone}</a>
-        </div>
-      </aside>
-
-      {/* Real Paystack Booking Modification Modal */}
-      {modifyModalOpen && bookingRecord && (
-        <div className="overlay" onMouseDown={() => !payingPaystack && setModifyModalOpen(false)}>
-          <div className="flow-modal booking-modify-modal" onMouseDown={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => !payingPaystack && setModifyModalOpen(false)} aria-label="Close"><X /></button>
-            <div className="modal-intro">
-              <p className="eyebrow">Modify Appointment</p>
-              <h2>{bookingRecord.item}</h2>
-              <p>Select your new preferred date and time. Paystack will collect the GH₵ 10 modification fee before confirming your update.</p>
             </div>
 
-            <form onSubmit={executePaystackModification} className="flow-form">
-              <div className="fee-disclosure-banner">
-                <ShieldCheck size={20} />
+            {/* Form body */}
+            <div className="track-form-card-body">
+              {activeTab === "orders" ? (
+                <form onSubmit={handleTrackOrder} className="track-form-slay">
+                  <div className="track-field-group">
+                    <label className="track-field-label">ORDER ID</label>
+                    <input
+                      required
+                      value={orderRef}
+                      onChange={(e) => setOrderRef(e.target.value)}
+                      placeholder="e.g. GB-2026-002"
+                      className="track-field-input"
+                    />
+                  </div>
+                  <div className="track-field-group">
+                    <label className="track-field-label">PHONE NUMBER OR EMAIL</label>
+                    <div className="track-input-track-row">
+                      <input
+                        value={orderCredential}
+                        onChange={(e) => setOrderCredential(e.target.value)}
+                        placeholder="Phone or Email used at checkout"
+                        className="track-field-input"
+                      />
+                      <button
+                        className="track-pink-btn"
+                        type="submit"
+                        disabled={orderTracking}
+                        onClick={() => { setTimeout(() => { document.querySelector('.track-result, .track-not-found, .tracking-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 600); }}
+                      >
+                        {orderTracking ? "…" : "TRACK →"}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleTrackBooking} className="track-form-slay">
+                  <div className="track-field-group">
+                    <label className="track-field-label">BOOKING REFERENCE</label>
+                    <input
+                      required
+                      value={bookingRef}
+                      onChange={(e) => setBookingRef(e.target.value)}
+                      placeholder="e.g. GB-2026-001"
+                      className="track-field-input"
+                    />
+                  </div>
+                  <div className="track-field-group">
+                    <label className="track-field-label">PHONE NUMBER OR EMAIL</label>
+                    <div className="track-input-track-row">
+                      <input
+                        value={bookingCredential}
+                        onChange={(e) => setBookingCredential(e.target.value)}
+                        placeholder="Phone or Email used at booking"
+                        className="track-field-input"
+                      />
+                      <button
+                        className="track-pink-btn"
+                        type="submit"
+                        disabled={bookingTracking}
+                        onClick={() => { setTimeout(() => { document.querySelector('.track-result, .track-not-found, .tracking-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 600); }}
+                      >
+                        {bookingTracking ? "…" : "TRACK →"}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              )}
+
+              {/* Trust strip */}
+              <div className="track-trust-strip">
+                <span><ShieldCheck size={13} /> Encrypted &amp; secure</span>
+                <span><Clock size={13} /> Real-time status</span>
+                <span><Sparkles size={13} /> Live Gailant data</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── RESULTS ─── */}
+
+          {/* Order errors */}
+          {activeTab === "orders" && orderError && <p className="tracking-error" role="alert">{orderError}</p>}
+          {activeTab === "bookings" && bookingError && <p className="tracking-error" role="alert">{bookingError}</p>}
+
+          {/* Order result */}
+          {activeTab === "orders" && orderSearched && orderRecord && (
+            <div className="track-result order-result-view">
+              <div className="track-meta-header">
                 <div>
-                  <strong>Modification Fee: GH₵ 10.00</strong>
-                  <p>Charged via Paystack (MoMo or card). Your appointment will be updated immediately upon payment success.</p>
+                  <span className="order-num-tag">ORDER #{orderRecord.reference}</span>
+                  <h3>{orderRecord.item}</h3>
+                  <p className="client-sub">{orderRecord.clientName} • Placed {orderRecord.orderPlacedDate || orderRecord.date}</p>
+                </div>
+                <div className="order-meta-stats">
+                  <div><span>Status</span><strong className={`badge-status ${orderRecord.status.toLowerCase().replace(/\s+/g, '-')}`}>{orderRecord.status}</strong></div>
+                  <div><span>Est. Delivery</span><strong>{orderRecord.orderDeliveredDate || "Pending dispatch"}</strong></div>
+                  <div><span>Items</span><strong>{orderRecord.itemsList?.length || 1}</strong></div>
+                  <button className="invoice-btn" onClick={() => alert("Invoice download starting...")} title="Download Invoice">
+                    <Download size={14} /> Invoice
+                  </button>
                 </div>
               </div>
 
-              <label>New Appointment Date
-                <input
-                  type="date"
-                  required
-                  min={new Date().toISOString().split("T")[0]}
-                  value={newDate}
-                  onChange={e => setNewDate(e.target.value)}
-                />
-              </label>
+              <div className="timeline-block">
+                <h4 className="timeline-title">Delivery Progress</h4>
+                <div className="icon-timeline-row">
+                  {orderStages.map((stg, idx) => {
+                    const currentStageIdx = orderRecord.orderStage ?? 0;
+                    const isComplete = idx <= currentStageIdx;
+                    const isCurrent = idx === currentStageIdx;
+                    const StageIcon = stg.icon;
+                    const timestampInfo = orderRecord.stageTimestamps?.[idx];
+                    return (
+                      <div key={stg.key} className={`icon-timeline-node ${isComplete ? "complete" : "pending"} ${isCurrent ? "current" : ""}`}>
+                        <div className="node-icon-wrapper">
+                          <StageIcon size={20} />
+                          {isComplete && <span className="checkmark-badge"><Check size={10} /></span>}
+                        </div>
+                        <strong>{stg.label}</strong>
+                        <small>{isComplete ? (timestampInfo?.timestamp || "Confirmed") : (timestampInfo?.expected || "Expected")}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-              <label>New Time Slot
-                <select required value={newTime} onChange={e => setNewTime(e.target.value)}>
-                  <option value="">Select a time slot</option>
-                  <option value="09:00 AM">09:00 AM</option>
-                  <option value="11:00 AM">11:00 AM</option>
-                  <option value="01:30 PM">01:30 PM</option>
-                  <option value="03:30 PM">03:30 PM</option>
-                  <option value="05:30 PM">05:30 PM</option>
-                </select>
-              </label>
+              {orderRecord.itemsList && orderRecord.itemsList.length > 0 && (
+                <div className="order-items-block">
+                  <h4>Order Summary</h4>
+                  <div className="order-items-table">
+                    {orderRecord.itemsList.map(item => (
+                      <div key={item.id} className="order-item-row">
+                        <div className="item-thumb"><Package size={20} /></div>
+                        <div className="item-info">
+                          <strong>{item.name}</strong>
+                          <small>{item.size ? `Size: ${item.size} • ` : ""}ID: {item.productId}</small>
+                        </div>
+                        <span className="item-qty">Qty: {item.quantity}</span>
+                        <strong className="item-price">{money(item.price * item.quantity)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              <button className="pill dark full" type="submit" disabled={payingPaystack}>
-                {payingPaystack ? "Connecting to Paystack…" : "Pay GH₵ 10 & Confirm Modification"}
-              </button>
-              <small className="secure-note" style={{ textAlign: "center", display: "block", marginTop: 8 }}>
-                Secured by Paystack • MoMo and cards accepted
-              </small>
-            </form>
-          </div>
+              <div className="order-totals-block">
+                <div className="totals-row"><span>Subtotal</span><span>{money(orderRecord.subtotal || 0)}</span></div>
+                <div className="totals-row"><span>Delivery Fee</span><span>{money(orderRecord.deliveryFee || 50)}</span></div>
+                {Boolean(orderRecord.discount) && <div className="totals-row discount"><span>Discount</span><span>-{money(orderRecord.discount || 0)}</span></div>}
+                <div className="totals-row grand-total"><span>Total</span><strong>{money(orderRecord.totalAmount || (orderRecord.subtotal || 0) + (orderRecord.deliveryFee || 50))}</strong></div>
+              </div>
+
+              {orderRecord.adminNote && (
+                <aside className="studio-note"><small>STUDIO UPDATE</small><p>{orderRecord.adminNote}</p></aside>
+              )}
+            </div>
+          )}
+
+          {activeTab === "orders" && orderSearched && !orderRecord && !orderError && (
+            <div className="track-not-found">
+              <Package size={36} />
+              <h3>We couldn&apos;t find an order with those details</h3>
+              <p>Please double-check your Order ID (e.g. <strong>GB-2026-002</strong>) and try again. If you continue to have trouble, our studio team is here on WhatsApp.</p>
+              <button className="pill light" onClick={() => { setOrderSearched(false); setOrderRef(""); }}>Try another Order ID</button>
+            </div>
+          )}
+
+          {/* Booking result */}
+          {activeTab === "bookings" && bookingSearched && bookingRecord && (
+            <div className="track-result order-result-view">
+              <div className="track-meta-header">
+                <div>
+                  <span className="order-num-tag">BOOKING #{bookingRecord.reference}</span>
+                  <h3>{bookingRecord.item}</h3>
+                  <p className="client-sub">{bookingRecord.clientName} • Scheduled for {bookingRecord.date}</p>
+                </div>
+                <div className="order-meta-stats">
+                  <div><span>Status</span><strong className={`badge-status ${bookingRecord.status.toLowerCase().replace(/\s+/g, '-')}`}>{bookingRecord.status}</strong></div>
+                  <div><span>Service Price</span><strong>{money(bookingRecord.servicePrice || 0)}</strong></div>
+                  <div><span>Deposit Paid</span><strong>{money(bookingRecord.depositPaid || 0)}</strong></div>
+                  <button className="invoice-btn" onClick={() => setModifyModalOpen(true)} title="Reschedule Appointment">
+                    <Calendar size={14} /> Reschedule
+                  </button>
+                </div>
+              </div>
+
+              <div className="timeline-block">
+                <h4 className="timeline-title">Appointment Progress</h4>
+                <div className="icon-timeline-row">
+                  {bookingStages.map((stg, idx) => {
+                    const currentStageIdx = bookingRecord.bookingStage ?? 0;
+                    const isComplete = idx <= currentStageIdx;
+                    const isCurrent = idx === currentStageIdx;
+                    const StageIcon = stg.icon;
+                    const timestampInfo = bookingRecord.stageTimestamps?.[idx];
+                    return (
+                      <div key={stg.key} className={`icon-timeline-node ${isComplete ? "complete" : "pending"} ${isCurrent ? "current" : ""}`}>
+                        <div className="node-icon-wrapper">
+                          <StageIcon size={20} />
+                          {isComplete && <span className="checkmark-badge"><Check size={10} /></span>}
+                        </div>
+                        <strong>{stg.label}</strong>
+                        <small>{isComplete ? (timestampInfo?.timestamp || "Confirmed") : (timestampInfo?.expected || "Scheduled")}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {bookingRecord.adminNote && (
+                <aside className="studio-note"><small>STUDIO UPDATE</small><p>{bookingRecord.adminNote}</p></aside>
+              )}
+
+              {modifyMessage && (
+                <div className={`modify-status-msg ${modifyMessage.type}`} style={{ marginTop: 16, padding: "12px 16px", borderRadius: 8, background: modifyMessage.type === "success" ? "#e6f4ea" : "#fce8e6", color: modifyMessage.type === "success" ? "#137333" : "#c5221f" }}>
+                  {modifyMessage.text}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "bookings" && bookingSearched && !bookingRecord && !bookingError && (
+            <div className="track-not-found">
+              <Calendar size={36} />
+              <h3>We couldn&apos;t find a booking with those details</h3>
+              <p>Please double-check your Booking Reference (e.g. <strong>GB-2026-001</strong>) and try again.</p>
+              <button className="pill light" onClick={() => { setBookingSearched(false); setBookingRef(""); }}>Try another Reference</button>
+            </div>
+          )}
+
+          {/* Reschedule Modal Overlay */}
+          {modifyModalOpen && (
+            <div className="modal-backdrop" onClick={() => setModifyModalOpen(false)}>
+              <div className="modal-card" onClick={e => e.stopPropagation()}>
+                <button className="close-btn" onClick={() => setModifyModalOpen(false)} aria-label="Close"><X size={18} /></button>
+                <h3>Reschedule Appointment</h3>
+                <p className="modal-sub">Modify your booking date and time. A modification fee of <strong>GH₵ 10</strong> applies via Paystack.</p>
+                <form onSubmit={executePaystackModification} className="booking-form">
+                  <label>NEW APPOINTMENT DATE *
+                    <input type="date" required value={newDate} onChange={e => setNewDate(e.target.value)} min={new Date().toISOString().split("T")[0]} />
+                  </label>
+                  <label>NEW TIME SLOT *
+                    <select required value={newTime} onChange={e => setNewTime(e.target.value)}>
+                      <option value="">Select a time slot...</option>
+                      <option value="09:00 AM">09:00 AM</option>
+                      <option value="11:00 AM">11:00 AM</option>
+                      <option value="01:30 PM">01:30 PM</option>
+                      <option value="03:30 PM">03:30 PM</option>
+                      <option value="05:30 PM">05:30 PM</option>
+                    </select>
+                  </label>
+                  <button type="submit" className="pill dark full" disabled={payingPaystack} style={{ marginTop: 16 }}>
+                    {payingPaystack ? "Processing Paystack..." : "Pay GH₵ 10 & Confirm Reschedule"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </section>
-  </>;
+      </div>
+    </>
+  );
 }
 
 function PoliciesPage() {
@@ -1194,8 +1166,9 @@ function PoliciesPage() {
     }
   };
 
-  return <><PageHero variant="policies" number="04" kicker="Good to know" title="Policies, FAQs &" italic="reviews." text="Clear studio guidelines, frequently asked questions, and real client reviews." />
+  return <><PageHero variant="policies" number="04" title="Policies, FAQs &" italic="reviews." text="Clear studio guidelines, frequently asked questions, and real client reviews." />
     <section className="policy-section">
+      <p className="eyebrow" style={{ gridColumn: "1 / -1", marginBottom: "32px" }}>Good to know</p>
       <div>
         {/* Navigation Tabs for Reorganized Layout */}
          <div className="track-subpage-tabs policy-tab-bar" id="policy-tabs-container" style={{ marginBottom: 32 }}>
@@ -1320,8 +1293,8 @@ function PoliciesPage() {
         </div>
 
         <div className="support-card-actions">
-          <a className="pill light" href={`tel:${BRAND.primaryPhone}`}>Call {BRAND.primaryPhone}</a>
-          <a className="pill light" href={`https://wa.me/${BRAND.whatsapp}`} target="_blank" rel="noreferrer">WhatsApp Us</a>
+          <a className="pill light" href={`tel:${BRAND.primaryPhone}`}>CALL &#123;{BRAND.primaryPhone}&#125;</a>
+          <a className="pill light" href={`https://wa.me/${BRAND.whatsapp}`} target="_blank" rel="noreferrer">CHAT ON WHATSAPP</a>
         </div>
       </aside>
     </section>
@@ -1331,7 +1304,7 @@ function PoliciesPage() {
 function CartDrawer({ cart, close, update, complete, navigate }: { cart: CartLine[]; close: () => void; update: (id: string, n: number) => void; complete: (message: string) => void; navigate: (v: View) => void }) {
   const [step, setStep] = useState<"bag" | "checkout">("bag");
   const [loading, setLoading] = useState(false);
-  const [countryCode, setCountryCode] = useState("+233");
+  const [countryCode] = useState("+233");
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -1384,7 +1357,7 @@ function CartDrawer({ cart, close, update, complete, navigate }: { cart: CartLin
               <h3>Your bag is empty</h3>
               <p>Discover studio-approved wigs, tools and beauty essentials.</p>
               <button className="pill light cart-shop-cta" onClick={() => { close(); navigate("shop"); }}>
-                Explore Shop Catalog <ArrowRight size={15} />
+                Explore Shop Catalog
               </button>
             </div>
           ) : (
@@ -1764,7 +1737,7 @@ function ProductDetailPage({ product, navigate, addToCart, favorites, toggleFavo
               <p>{product.description}</p>
               <ul className="product-features">
                 <li>• {product.subCategory || "Premium quality"}</li>
-                <li>• 24" length</li>
+                <li>• 24&quot; length</li>
                 <li>• HD Lace construction</li>
                 <li>• 100% Human Hair</li>
                 <li>• Natural looking finish</li>

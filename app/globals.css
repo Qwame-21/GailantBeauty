@@ -85,7 +85,7 @@
 .review-form-card p{color:#66594d;font:400 13px/1.6 var(--sans);margin:0 0 20px}
 
 /* Global utility: eyebrow label */
-.eyebrow{font-size:11px;line-height:1.2;font-weight:700;letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin:0 0 23px}
+.eyebrow{font-size:11px;line-height:1.2;font-weight:700;letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 23px;width:100%}
 .eyebrow.light{color:#c6c6c6}
 /* Global utility: page hero h1 */
 .page-hero h1{font:500 clamp(72px,7.8vw,124px)/.82 var(--display);letter-spacing:-.055em;margin:0}
@@ -235,6 +235,7 @@
 .marquee i{font-style:normal;color:#aaa}
 .section{max-width:1400px;margin:0 auto;padding:110px 6vw}
 .section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:48px}
+.section-head>div{text-align:center;flex:1}
 .section-head h2,.experience h2{font:500 clamp(48px,5.2vw,76px)/.95 var(--display);letter-spacing:-.045em;margin:0}
 .service-grid,.service-list{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
 .service-list{row-gap:44px}
@@ -465,27 +466,34 @@
 
 /* ─── Product Detail Page ─── */
 .product-detail-page{
-  padding:60px 40px;
+  padding:110px 40px 60px;
   max-width:1400px;
   margin:0 auto;
   width:100%;
   box-sizing:border-box;
 }
 .back-button{
-  display:flex;
+  display:inline-flex;
   align-items:center;
-  gap:8px;
-  background:none;
-  border:none;
-  font-size:14px;
-  font-weight:600;
-  color:#111;
+  gap:10px;
+  background:#ffffff;
+  border:1px solid #d4c6b5;
+  padding:10px 22px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#1c140d;
   cursor:pointer;
   margin-bottom:32px;
-  transition:gap 0.2s ease;
+  transition:all 0.22s ease;
 }
 .back-button:hover{
-  gap:12px;
+  background:#1c140d;
+  color:#ffffff;
+  border-color:#1c140d;
+  transform:translateX(-3px);
 }
 .product-detail-content{
   display:grid;
@@ -751,7 +759,7 @@
   .footer-main>div:last-child{display:none}
   .stat-grid{grid-template-columns:repeat(2,1fr)}
   .product-detail-page{
-    padding:50px 25px;
+    padding:100px 25px 50px;
   }
   .product-detail-content{
     grid-template-columns:1fr;
@@ -821,7 +829,7 @@
   }
   .hero h1{font-size:clamp(52px,13vw,72px);line-height:.88}
   .product-detail-page{
-    padding:40px 20px;
+    padding:90px 20px 40px;
   }
   .product-detail-content{
     grid-template-columns:1fr;
@@ -1576,7 +1584,7 @@
 .page-hero-wishlist{background-position:center,66.666% center}
 .page-hero-policies{background-position:center,100% center}
 
-.track-section{max-width:1320px;display:grid;grid-template-columns:1fr 0.62fr;padding:72px 6vw 104px;gap:48px;align-items:start;background:#fff;margin:0 auto}
+.track-section{max-width:1320px;display:grid;grid-template-columns:1.2fr 0.8fr;padding:72px 6vw 104px;gap:56px;align-items:start;background:#fff;margin:0 auto}
 .track-result{margin-top:24px;padding:22px;border:1px solid #e0ded8;border-radius:12px;background:#fff}
 .track-section aside{border-radius:22px;background:linear-gradient(150deg,#19130f,#302116 70%,#5c3d1e);box-shadow:0 22px 60px rgba(24,16,10,.2);align-self:start;position:sticky;top:100px}
 .track-section aside a{border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:12px 18px}
@@ -2374,13 +2382,13 @@
   line-height: 1.5 !important;
 }
 .cart-shop-cta {
-  padding: 9px 18px !important;
-  font-size: 10px !important;
+  padding: 6px 12px !important;
+  font-size: 9px !important;
   border-radius: 999px !important;
   background: #1c140d !important;
   color: #fff !important;
   border: 1px solid #1c140d !important;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.10) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
   min-height: 0 !important;
 }
 .cart-shop-cta:hover {
@@ -2570,16 +2578,156 @@ input, select, textarea {
 }
 
 /* ─────────────────────────────────────────
-   TRACK PAGE — Form Card Polish
-   Using .track-card + .track-form-slay
+   TRACK PAGE — Premium Desktop Redesign
 ───────────────────────────────────────── */
-.track-card {
-  border: 1px solid #e5dbcd;
-  border-radius: 12px;
-  padding: 44px 44px 48px;
-  background: #fafaf8;
-  box-shadow: 0 4px 18px rgba(30,20,10,.06);
+
+/* Page shell — single column centered layout */
+.track-page-shell {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 72px 6vw 110px;
+  display: block;
+  background: #fff;
 }
+
+/* Main tracking block */
+.track-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+/* ── Switch Tabs (Wishlist Button Style) ── */
+.track-pill-switcher {
+  display: inline-flex;
+  gap: 10px;
+  padding: 0;
+  background: transparent;
+  align-self: flex-start;
+}
+.track-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border: 1px solid #d4c6b5;
+  border-radius: 999px;
+  background: #ffffff !important;
+  color: #4a3e32;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  cursor: pointer;
+  transition: all .22s cubic-bezier(.2,.8,.2,1);
+  white-space: nowrap;
+  box-shadow: none;
+}
+.track-pill-btn svg {
+  color: #8c7e70;
+  transition: color .2s, fill .2s;
+}
+.track-pill-btn:hover {
+  background: #faf6f0 !important;
+  border-color: #c5905b;
+  color: #1c140d;
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+.track-pill-btn:hover svg {
+  color: #c5905b;
+}
+.track-pill-btn.active {
+  background: #1c140d !important;
+  color: #ffffff !important;
+  border-color: #1c140d !important;
+  font-weight: 800;
+  box-shadow: none;
+}
+.track-pill-btn.active svg {
+  color: #c5905b;
+}
+
+/* ── Form Card (Matched to Service Card Color & Style) ── */
+.track-form-card {
+  border: 1px solid #ece6de;
+  border-radius: 18px;
+  background: #ffffff !important;
+  overflow: hidden;
+  box-shadow: none;
+  transition: border-color .22s;
+}
+.track-form-card:hover {
+  border-color: #d8cbbe;
+  box-shadow: none;
+}
+
+/* Card header band (Service visual header style) */
+.track-form-card-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 30px 38px 26px;
+  background: #faf6f0 !important;
+  border-bottom: 1px solid #ece6de;
+  color: #1c140d;
+}
+.track-form-card-icon {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #d4c6b5;
+  display: grid;
+  place-items: center;
+  color: #c5905b;
+  box-shadow: none;
+}
+.track-form-card-title {
+  font: 600 25px/1.1 var(--display);
+  color: #1c140d;
+  margin: 0 0 4px;
+  letter-spacing: -.02em;
+}
+.track-form-card-sub {
+  font-size: 13px;
+  color: #7a6b5d;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Card body */
+.track-form-card-body {
+  padding: 32px 38px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: #ffffff !important;
+}
+
+/* Trust strip */
+.track-trust-strip {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 20px;
+  background: #faf7f2;
+  border-radius: 10px;
+  border: 1px solid #efe6dc;
+}
+.track-trust-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a6650;
+  letter-spacing: .03em;
+}
+.track-trust-strip svg { color: #b08040; }
+
+/* Keep existing form input styles */
 .track-subpage-tabs {
   display: flex;
   gap: 0;
@@ -2623,7 +2771,7 @@ input, select, textarea {
   max-width: 480px;
 }
 
-/* Form — field groups */
+/* Form fields */
 .track-form-slay {
   display: flex;
   flex-direction: column;
@@ -2638,9 +2786,7 @@ input, select, textarea {
   gap: 8px;
   border-bottom: none;
 }
-.track-field-group:last-child {
-  border-bottom: none;
-}
+.track-field-group:last-child { border-bottom: none; }
 .track-field-label {
   display: block;
   padding: 0;
@@ -2654,15 +2800,15 @@ input, select, textarea {
 .track-field-input {
   display: block;
   width: 100%;
-  height: 52px;
+  height: 54px;
   padding: 0 16px !important;
   background: #fff !important;
-  border: 1px solid #d9d8d4 !important;
-  border-radius: 4px !important;
+  border: 1.5px solid #ddd5c8 !important;
+  border-radius: 10px !important;
   font-size: 15px !important;
   color: #1c140d !important;
   outline: none !important;
-  transition: border-color .18s, background .18s !important;
+  transition: border-color .18s !important;
 }
 .track-field-input::placeholder { color: #c4b8aa !important; }
 .track-field-input:focus {
@@ -2670,11 +2816,10 @@ input, select, textarea {
   border-color: #c5905b !important;
   box-shadow: none !important;
 }
-/* Row: input + TRACK button side by side */
 .track-input-track-row {
   display: flex;
   align-items: stretch;
-  gap: 12px;
+  gap: 10px;
 }
 .track-input-track-row .track-field-input {
   flex: 1;
@@ -2682,34 +2827,199 @@ input, select, textarea {
 }
 .track-pink-btn {
   flex: 0 0 auto;
-  height: 52px;
-  padding: 0 32px;
-  background: #ffffff !important;
-  color: #c5905b !important;
-  border: 1px solid #c5905b !important;
-  border-radius: 4px !important;
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  letter-spacing: .15em !important;
+  height: 54px;
+  padding: 0 28px;
+  background: #1c140d !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: .14em !important;
   text-transform: uppercase !important;
   cursor: pointer;
   white-space: nowrap;
-  transition: all .2s !important;
+  transition: all .22s cubic-bezier(.2,.8,.2,1) !important;
 }
 .track-pink-btn:hover {
-  background: #faf6f0 !important;
-  color: #a87c4e !important;
-  border-color: #a87c4e !important;
+  background: #c5905b !important;
+  transform: translateY(-1px);
+  box-shadow: none !important;
 }
-.track-pink-btn:disabled { opacity: .5; cursor: not-allowed; }
+.track-pink-btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
+
+/* ── RIGHT SIDEBAR ── */
+.track-support-sidebar {
+  position: sticky;
+  top: 100px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #1a130e 0%, #2c1d12 55%, #4e3219 100%);
+  color: #fff;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(24,16,10,.28);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Live badge at top */
+.track-sidebar-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: #c5c0b0;
+  text-transform: uppercase;
+}
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3db76a;
+  box-shadow: 0 0 0 3px rgba(61,183,106,.24);
+  animation: livePulse 2s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(61,183,106,.24); }
+  50% { box-shadow: 0 0 0 6px rgba(61,183,106,.10); }
+}
+
+/* Sidebar header */
+.track-sidebar-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 26px 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.track-sidebar-avatar {
+  flex: 0 0 auto;
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: rgba(197,144,91,.2);
+  border: 1px solid rgba(197,144,91,.4);
+  display: grid;
+  place-items: center;
+  font: 700 14px/1 var(--display);
+  color: #c5905b;
+  letter-spacing: .06em;
+}
+.track-sidebar-header h3 {
+  font: 500 24px/1.15 var(--display);
+  color: #fff;
+  margin: 0 0 6px;
+}
+.track-sidebar-header p {
+  font-size: 12.5px;
+  color: rgba(255,255,255,.62);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Sidebar meta rows */
+.track-sidebar-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.track-sidebar-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  font-size: 12px;
+  color: rgba(255,255,255,.72);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.track-sidebar-meta-item:last-child { border-bottom: 0; }
+.track-sidebar-meta-item svg { color: #c5905b; flex-shrink: 0; }
+
+/* Sidebar action buttons */
+.track-sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 24px;
+}
+.track-sidebar-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 20px;
+  border-radius: 999px;
+  background: #25d366;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .10em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: all .22s ease;
+  text-align: center;
+  box-shadow: 0 6px 22px rgba(37,211,102,.28);
+}
+.track-sidebar-btn-primary:hover {
+  background: #1db654;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(37,211,102,.38);
+}
+.track-sidebar-btn-outline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 20px;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255,255,255,.9);
+  border: 1.5px solid rgba(255,255,255,.3);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .10em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: all .22s ease;
+  text-align: center;
+}
+.track-sidebar-btn-outline:hover {
+  background: rgba(255,255,255,.1);
+  border-color: rgba(255,255,255,.6);
+}
+
+/* Sidebar footnote */
+.track-sidebar-footnote {
+  font-size: 10px;
+  color: rgba(255,255,255,.32);
+  letter-spacing: .08em;
+  text-align: center;
+  padding: 12px 24px 20px;
+  margin: 0;
+}
 
 /* Mobile: track card */
 @media (max-width: 760px) {
-  .track-card { padding: 26px 20px 30px; }
-  .track-tab-btn { padding: 10px 14px 11px; font-size: 11px; }
-  .track-field-input { height: 48px !important; font-size: 14px !important; }
-  .track-pink-btn { height: 48px; padding: 0 20px; }
-  .track-section { padding: 36px 16px 64px; grid-template-columns: 1fr; }
+  .track-page-shell {
+    grid-template-columns: 1fr;
+    padding: 36px 16px 64px;
+    gap: 20px;
+  }
+  .track-support-sidebar {
+    position: static;
+    top: auto;
+  }
+  .track-form-card-header { padding: 22px 20px; }
+  .track-form-card-body { padding: 22px 20px 20px; }
+  .track-trust-strip { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .track-field-input { height: 50px !important; border-radius: 8px !important; }
+  .track-pink-btn { height: 50px; padding: 0 18px; border-radius: 8px !important; font-size: 10px !important; }
 }
 
 
@@ -3075,4 +3385,60 @@ input, select, textarea {
   .hero-editorial .hero-copy h1 { font-size: clamp(38px,11vw,52px) !important; }
   .product-grid { grid-template-columns: 1fr !important; }
   .track-card { padding: 18px 14px 22px !important; }
+}
+
+/* Force true horizontal centering for small uppercase labels / kickers */
+.eyebrow, .hero-eyebrow {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 0.22em !important; /* Compensate for letter-spacing to achieve true center alignment */
+}
+
+.gb-kicker {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 0.2em !important; /* Compensate for letter-spacing to achieve true center alignment */
+}
+
+/* Centering for SectionHead titles and kickers */
+.section-head {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  margin-bottom: 48px !important;
+  width: 100% !important;
+}
+.section-head > div {
+  width: 100% !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+.section-head .text-button {
+  position: absolute !important;
+  right: 0 !important;
+  bottom: 4px !important;
+}
+@media (max-width: 768px) {
+  .section-head {
+    position: static !important;
+  }
+  .section-head .text-button {
+    position: static !important;
+    margin-top: 16px !important;
+  }
 }
