@@ -1,12 +1,12 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, MapPin, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Truck, X } from "lucide-react";
-import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, MOCK_TRACKING_DATABASE, type Product, type Service, type TrackingRecord } from "./constants";
-import { insertRecord, signInAdmin, trackReference, updateRecord } from "./lib/supabase";
-import { GAILAND_DATA_EVENT, loadCatalog, patchLocalRecord } from "./lib/gailand-store";
+import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, Clock, Download, Heart, MapPin, Menu, Minus, Package, Plus, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles, Star, Truck, X } from "lucide-react";
+import { BRAND, POLICIES, PRODUCTS, SERVICES, TESTIMONIALS, FAQS, CATEGORIES_DROPDOWN, type Product, type Service, type TrackingRecord } from "./constants";
+import { fetchRecords, insertRecord, isSupabaseConfigured, supabase, trackReference } from "./lib/supabase";
+import { GAILAND_DATA_EVENT, loadCatalog } from "./lib/gailand-store";
 import { openPaystackPayment } from "./lib/paystack";
 
 type View = "home" | "services" | "shop" | "wishlist" | "track" | "policies" | "product-detail";
@@ -14,9 +14,19 @@ type CartLine = Product & { quantity: number };
 type Modal = { kind: "booking"; service: Service } | { kind: "consultation"; service: Service } | null;
 
 const money = (n: number) => new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", maximumFractionDigits: 0 }).format(n);
+const cloudinaryUrl = (url: string, width: number) => url.includes("/upload/") ? url.replace("/upload/", `/upload/f_auto,q_auto,c_fill,w_${width}/`) : url;
+
+function CatalogImage({ src, alt, width = 720 }: { src?: string; alt: string; width?: number }) {
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  if (!src || failed) return null;
+  return <img className={`catalog-image${loaded ? " is-loaded" : ""}`} src={cloudinaryUrl(src, width)} alt={alt} loading="lazy" decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />;
+}
 
 export function GailantApp() {
   const [, refreshCatalog] = useState(0);
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [catalogError, setCatalogError] = useState("");
   const [view, setView] = useState<View>("home");
   const [menuOpen, setMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
@@ -30,16 +40,41 @@ export function GailantApp() {
   const overlayOpen = cartOpen || searchOpen || modal !== null;
 
   useEffect(() => {
-    const syncCatalog = () => {
-      const catalog = loadCatalog({ services: SERVICES, products: PRODUCTS, testimonials: TESTIMONIALS });
-      SERVICES.splice(0, SERVICES.length, ...catalog.services);
-      PRODUCTS.splice(0, PRODUCTS.length, ...catalog.products);
-      TESTIMONIALS.splice(0, TESTIMONIALS.length, ...catalog.testimonials.map(({ quote, name, service, rating }) => ({ quote, name, service, rating })));
-      refreshCatalog(v => v + 1);
+    let active = true;
+    const syncCatalog = async () => {
+      setCatalogError("");
+      if (!isSupabaseConfigured) {
+        const catalog = loadCatalog({ services: [], products: [], testimonials: [] });
+        SERVICES.splice(0, SERVICES.length, ...catalog.services);
+        PRODUCTS.splice(0, PRODUCTS.length, ...catalog.products);
+        TESTIMONIALS.splice(0, TESTIMONIALS.length, ...catalog.testimonials.map(({ quote, name, service, rating }) => ({ quote, name, service, rating })));
+        if (active) { refreshCatalog(value => value + 1); setCatalogReady(true); }
+        return;
+      }
+      const [servicesResult, productsResult, testimonialsResult, settingsResult] = await Promise.all([
+        fetchRecords("services"), fetchRecords("products"), fetchRecords("testimonials"), fetchRecords("business_settings"),
+      ]);
+      const failure = [servicesResult, productsResult, testimonialsResult, settingsResult].find(result => result.error)?.error;
+      if (failure) {
+        if (active) { setCatalogError(failure); setCatalogReady(true); }
+        return;
+      }
+      SERVICES.splice(0, SERVICES.length, ...(servicesResult.data || []).map(row => ({ id: String(row.id), name: String(row.name || ""), category: String(row.category || "Other"), subCategory: row.subcategory ? String(row.subcategory) : undefined, price: Number(row.price || 0), duration: String(row.duration_label || `${Number(row.duration_minutes || 0)} min`), description: String(row.description || ""), consultation: Boolean(row.consultation_required), featured: Boolean(row.featured), imageUrl: row.primary_image_url ? String(row.primary_image_url) : row.image_url ? String(row.image_url) : undefined, imageAlt: String(row.name || "Gailant Beauty service") })));
+      PRODUCTS.splice(0, PRODUCTS.length, ...(productsResult.data || []).map((row, index) => ({ id: String(row.id), name: String(row.name || ""), category: String(row.category || "Other"), subCategory: row.subcategory ? String(row.subcategory) : undefined, price: Number(row.promo_active && row.promo_price ? row.promo_price : row.price || 0), description: String(row.description || ""), badge: row.badge ? String(row.badge) : undefined, tone: ["espresso", "linen", "onyx", "blush"][index % 4], imageUrl: row.primary_image_url ? String(row.primary_image_url) : row.image_url ? String(row.image_url) : undefined, imageAlt: String(row.name || "Gailant Beauty product"), inventory: Number(row.inventory || 0), sizeLabel: row.size_label ? String(row.size_label) : undefined, benefits: Array.isArray(row.benefits) ? row.benefits.map(String) : undefined, howToUse: row.how_to_use ? String(row.how_to_use) : undefined })));
+      TESTIMONIALS.splice(0, TESTIMONIALS.length, ...(testimonialsResult.data || []).filter(row => row.published !== false).map(row => ({ quote: String(row.quote || ""), name: String(row.customer_name || "Gailant client"), service: String(row.service_name || "Gailant Beauty"), rating: Number(row.rating || 5), verified: row.verified ? "Verified client" : undefined })));
+      const settings = settingsResult.data?.[0];
+      if (settings) Object.assign(BRAND, { name: String(settings.business_name || BRAND.name), tagline: String(settings.tagline || BRAND.tagline), location: String(settings.location || BRAND.location), primaryPhone: String(settings.primary_phone || BRAND.primaryPhone), secondaryPhone: String(settings.secondary_phone || BRAND.secondaryPhone), whatsapp: String(settings.whatsapp_number || BRAND.whatsapp), hours: String(settings.opening_hours || BRAND.hours), homeSurcharge: Number(settings.home_service_surcharge ?? BRAND.homeSurcharge), depositPercent: Number(settings.deposit_percent ?? BRAND.depositPercent) });
+      if (active) { refreshCatalog(value => value + 1); setCatalogReady(true); }
     };
-    syncCatalog();
-    window.addEventListener(GAILAND_DATA_EVENT, syncCatalog);
-    return () => window.removeEventListener(GAILAND_DATA_EVENT, syncCatalog);
+    void syncCatalog();
+    const onCatalogChange = () => { void syncCatalog(); };
+    window.addEventListener(GAILAND_DATA_EVENT, onCatalogChange);
+    let liveTimer: number | undefined;
+    const channel = supabase?.channel("storefront-catalog-live").on("postgres_changes", { event: "*", schema: "public" }, () => {
+      window.clearTimeout(liveTimer);
+      liveTimer = window.setTimeout(onCatalogChange, 180);
+    }).subscribe();
+    return () => { active = false; window.clearTimeout(liveTimer); if(channel&&supabase)void supabase.removeChannel(channel); window.removeEventListener(GAILAND_DATA_EVENT, onCatalogChange); };
   }, []);
 
   useEffect(() => {
@@ -112,8 +147,7 @@ export function GailantApp() {
   };
 
   const addToCart = (product: Product) => {
-    setCart((current) => current.some((x) => x.id === product.id) ? current.map((x) => x.id === product.id ? { ...x, quantity: x.quantity + 1 } : x) : [...current, { ...product, quantity: 1 }]);
-    setNotice(`ADDED ${product.name.toUpperCase()} TO BAG`);
+    setCart((current) => { const existing=current.find(item=>item.id===product.id); if(product.inventory!=null&&existing&&existing.quantity>=product.inventory){setNotice("NO MORE STOCK IS AVAILABLE");return current;} if(product.inventory===0){setNotice("THIS ITEM IS CURRENTLY OUT OF STOCK");return current;} setNotice(`ADDED ${product.name.toUpperCase()} TO BAG`); return existing?current.map(item=>item.id===product.id?{...item,quantity:item.quantity+1}:item):[...current,{...product,quantity:1}]; });
   };
 
   const toggleFavorite = (id: string) => {
@@ -129,7 +163,9 @@ export function GailantApp() {
 
   return <div className="site-shell">
     <Header view={view} navigate={navigate} menuOpen={menuOpen} setMenuOpen={setMenuOpen} cartCount={count} favoritesCount={favorites.length} openCart={() => setCartOpen(true)} openSearch={() => setSearchOpen(true)} />
-    <main>
+    <main aria-busy={!catalogReady}>
+      {!catalogReady && <div className="catalog-status" role="status"><RefreshCw aria-hidden="true" /> Loading the Gailant collection…</div>}
+      {catalogError && <div className="catalog-status catalog-status-error" role="alert"><span>We couldn’t load the latest collection.</span><button onClick={() => window.location.reload()}>Retry</button></div>}
       {view === "home" && <Home navigate={navigate} book={(service) => setModal(service.consultation ? { kind: "consultation", service } : { kind: "booking", service })} addToCart={addToCart} favorites={favorites} toggleFavorite={toggleFavorite} openProductDetail={openProductDetail} />}
       {view === "services" && <ServicesPage book={(service) => setModal(service.consultation ? { kind: "consultation", service } : { kind: "booking", service })} favorites={favorites} toggleFavorite={toggleFavorite} initialFilter={filterCategory} />}
       {view === "shop" && <ShopPage addToCart={addToCart} favorites={favorites} toggleFavorite={toggleFavorite} initialFilter={filterCategory} openProductDetail={openProductDetail} />}
@@ -149,6 +185,8 @@ export function GailantApp() {
 
 function SearchModal({ close, navigate }: { close: () => void; navigate: (v: View) => void }) {
   const [q, setQ] = useState("");
+  const [activeResult, setActiveResult] = useState(0);
+  const [recent, setRecent] = useState<string[]>(() => { try { return JSON.parse(window.localStorage.getItem("gailand-recent-searches") || "[]") as string[]; } catch { return []; } });
   const term = q.trim().toLowerCase();
   
   const searchResults = term.length > 0 ? [
@@ -168,7 +206,9 @@ function SearchModal({ close, navigate }: { close: () => void; navigate: (v: Vie
       tone: "linen",
       action: () => navigate("services")
     }))
-  ] : [];
+  ].sort((a,b)=>{const aStarts=a.name.toLowerCase().startsWith(term)?0:1;const bStarts=b.name.toLowerCase().startsWith(term)?0:1;return aStarts-bStarts||a.name.localeCompare(b.name);}) : [];
+  const remember=(value:string)=>{const next=[value,...recent.filter(item=>item.toLowerCase()!==value.toLowerCase())].slice(0,5);setRecent(next);window.localStorage.setItem("gailand-recent-searches",JSON.stringify(next));};
+  const choose=(index:number)=>{const result=searchResults[index];if(!result)return;remember(q.trim());result.action();};
 
   return (
     <div className="overlay modal-overlay" onMouseDown={close}>
@@ -189,7 +229,10 @@ function SearchModal({ close, navigate }: { close: () => void; navigate: (v: Vie
             className="pitchsyde-search-input"
             placeholder="Search products..."
             value={q}
-            onChange={e => setQ(e.target.value)}
+            onChange={e => {setQ(e.target.value);setActiveResult(0);}}
+            onKeyDown={event=>{if(event.key==="ArrowDown"){event.preventDefault();setActiveResult(value=>Math.min(searchResults.length-1,value+1));}else if(event.key==="ArrowUp"){event.preventDefault();setActiveResult(value=>Math.max(0,value-1));}else if(event.key==="Enter"&&searchResults.length){event.preventDefault();choose(activeResult);}}}
+            aria-controls="storefront-search-results"
+            aria-activedescendant={searchResults[activeResult]?`search-result-${activeResult}`:undefined}
           />
           {q && (
             <button type="button" className="pitchsyde-clear-btn" onClick={() => setQ("")} aria-label="Clear query">
@@ -203,7 +246,7 @@ function SearchModal({ close, navigate }: { close: () => void; navigate: (v: Vie
           <div className="search-suggestions">
             <small>POPULAR SEARCHES</small>
             <ul className="search-popular-list">
-              {["Nails", "Hair", "Lashes", "Makeup", "Wigs"].map(item => (
+              {(recent.length?recent:["Nails", "Hair", "Lashes", "Makeup", "Wigs"]).map(item => (
                 <li key={item}>
                   <button type="button" onClick={() => setQ(item)}>
                     <span>{item}</span>
@@ -217,9 +260,9 @@ function SearchModal({ close, navigate }: { close: () => void; navigate: (v: Vie
 
         {/* Results List */}
         {searchResults.length > 0 && (
-          <div className="pitchsyde-results-list">
+          <div className="pitchsyde-results-list" id="storefront-search-results" role="listbox">
             {searchResults.map((r, i) => (
-              <button key={i} className="pitchsyde-result-card" onClick={r.action}>
+              <button key={r.id} id={`search-result-${i}`} role="option" aria-selected={i===activeResult} className={`pitchsyde-result-card${i===activeResult?" active":""}`} onMouseEnter={()=>setActiveResult(i)} onClick={()=>choose(i)}>
                 <div className={`pitchsyde-result-thumb mini-product ${r.tone}`}>
                   <span>G</span>
                 </div>
@@ -245,9 +288,7 @@ function SearchModal({ close, navigate }: { close: () => void; navigate: (v: Vie
           </button>
         )}
 
-        <div className="pitchsyde-footer">
-          <span>⚡ Fast search powered by <strong>Pitchsyde</strong></span>
-        </div>
+        <div className="pitchsyde-footer"><span><Search size={13} aria-hidden="true" /> Products and services update as you type</span></div>
       </div>
     </div>
   );
@@ -470,13 +511,13 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite, openProduc
         ))}
       </div>
     </section>
-    <section className="section services-preview"><SectionHead kicker="The Gailant edit" title="Services made for your moment." action="View all services" onAction={() => navigate("services")} /><div className="service-grid">{SERVICES.filter((x) => x.featured).map((service, index) => <ServiceCard key={service.id} service={service} index={index} book={book} isFav={favorites.includes(service.id)} toggleFav={toggleFavorite} />)}</div></section>
+    <section className="section services-preview"><SectionHead kicker="The Gailant edit" title="Services made for your moment." action="View all services" onAction={() => navigate("services")} />{SERVICES.some(service => service.featured) ? <div className="service-grid">{SERVICES.filter((x) => x.featured).map((service, index) => <ServiceCard key={service.id} service={service} index={index} book={book} isFav={favorites.includes(service.id)} toggleFav={toggleFavorite} />)}</div> : <div className="empty-state catalog-empty"><Sparkles /><h3>Our service edit is being prepared.</h3><p>Browse the complete service menu for currently available appointments.</p><button className="pill dark" onClick={() => navigate("services")}>View services</button></div>}</section>
     <section className="statement"><p className="eyebrow light">Our philosophy</p><blockquote>“Every detail should feel <em>intentional.</em><br />Every client should leave feeling <em>royal.</em>”</blockquote><p>{BRAND.about}</p></section>
-    <section className="section shop-preview"><SectionHead kicker="The beauty shelf" title="Your crown, cared for." action="Shop all" onAction={() => navigate("shop")} /><div className="product-grid">{PRODUCTS.map((product) => <ProductCard key={product.id} product={product} add={addToCart} isFav={favorites.includes(product.id)} toggleFav={toggleFavorite} openProductDetail={openProductDetail} />)}</div></section>
+    <section className="section shop-preview"><SectionHead kicker="The beauty shelf" title="Your crown, cared for." action="Shop all" onAction={() => navigate("shop")} />{PRODUCTS.length ? <div className="product-grid">{PRODUCTS.map((product) => <ProductCard key={product.id} product={product} add={addToCart} isFav={favorites.includes(product.id)} toggleFav={toggleFavorite} openProductDetail={openProductDetail} />)}</div> : <div className="empty-state catalog-empty"><ShoppingBag /><h3>The beauty shelf is being prepared.</h3><p>New studio-approved essentials will appear here as they become available.</p></div>}</section>
     <section className="experience"><div><p className="eyebrow">Beauty comes to you</p><h2>The salon experience,<br /><em>at your door.</em></h2></div><div><p>Professional beauty service, wherever you feel most at ease. Select home service when booking and we’ll take care of the rest.</p><button className="pill light" onClick={() => navigate("services")}>Book home service <ArrowRight size={17} /></button></div></section>
 
     {/* Client Notes: two-up desktop, single-card mobile carousel */}
-    <section className="section testimonials">
+    {TESTIMONIALS.length > 0 && <section className="section testimonials">
       <div className="section-head testimonial-heading" style={{ alignItems: "center" }}>
         <div>
           <p className="eyebrow">Client notes</p>
@@ -484,12 +525,12 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite, openProduc
         </div>
       </div>
       <div className="testimonial-carousel-shell">
-        <button className="carousel-nav-btn carousel-nav-prev" onClick={prevTestimonials} aria-label="Previous testimonials">←</button>
+        <button className="carousel-nav-btn carousel-nav-prev" onClick={prevTestimonials} aria-label="Previous testimonials"><ArrowLeft size={16} /></button>
         <div className="testimonial-flash-grid">
           {visibleTestimonials.map((item, idx) => (
             <article key={item.name + testimonialIndex} className="flash-card glass-reveal">
               <div className="flash-card-header">
-                <span className="stars">★★★★★</span>
+                <span className="stars" aria-label={`${item.rating} out of 5 stars`}>{Array.from({length:item.rating},(_,star)=><Star key={star} size={13} fill="currentColor" aria-hidden="true" />)}</span>
                 <span className="card-number">0{testimonialIndex * itemsPerPage + idx + 1}</span>
               </div>
               <p className="flash-quote">“{item.quote}”</p>
@@ -500,9 +541,9 @@ function Home({ navigate, book, addToCart, favorites, toggleFavorite, openProduc
             </article>
           ))}
         </div>
-        <button className="carousel-nav-btn carousel-nav-next" onClick={nextTestimonials} aria-label="Next testimonials">→</button>
+        <button className="carousel-nav-btn carousel-nav-next" onClick={nextTestimonials} aria-label="Next testimonials"><ArrowRight size={16} /></button>
       </div>
-    </section>
+    </section>}
 
   </>;
 }
@@ -516,6 +557,7 @@ function SectionHead({ kicker, title, action, onAction }: { kicker: string; titl
 function ServiceCard({ service, index, book, isFav, toggleFav }: { service: Service; index: number; book: (s: Service) => void; isFav?: boolean; toggleFav?: (id: string) => void }) {
   return <article className="service-card">
     <div className={`service-visual tone-${index + 1}`}>
+      <CatalogImage src={service.imageUrl} alt={service.imageAlt || service.name} />
       <span>0{index + 1}</span>
       <strong>{service.category.substring(0, 1)}</strong>
       <small>{service.category}</small>
@@ -542,6 +584,7 @@ function ProductCard({ product, add, isFav, toggleFav, openProductDetail }: { pr
       style={{ cursor: "pointer" }}
     >
       <div className={`luxury-product-visual ${product.tone}`}>
+        <CatalogImage src={product.imageUrl} alt={product.imageAlt || product.name} />
         <span className="luxury-product-shape">G</span>
         
         {/* Premium Badge - Top Left */}
@@ -564,15 +607,7 @@ function ProductCard({ product, add, isFav, toggleFav, openProductDetail }: { pr
         <h3 className="luxury-product-name">{product.name}</h3>
         
         {/* Specifications */}
-        <div className="luxury-product-specs">
-          {product.subCategory && <span className="luxury-spec-pill">{product.subCategory}</span>}
-          <span className="luxury-spec-pill">•</span>
-          <span className="luxury-spec-pill">24&quot;</span>
-          <span className="luxury-spec-pill">•</span>
-          <span className="luxury-spec-pill">HD Lace</span>
-          <span className="luxury-spec-pill">•</span>
-          <span className="luxury-spec-pill">100% Human Hair</span>
-        </div>
+        <div className="luxury-product-specs"><span className="luxury-spec-pill">{product.category}</span>{product.subCategory&&<span className="luxury-spec-pill">{product.subCategory}</span>}{product.sizeLabel&&<span className="luxury-spec-pill">{product.sizeLabel}</span>}</div>
         
         {/* Price and Add Button */}
         <div className="luxury-product-footer">
@@ -725,14 +760,19 @@ function TrackPage() {
   const [newTime, setNewTime] = useState("");
   const [payingPaystack, setPayingPaystack] = useState(false);
   const [modifyMessage, setModifyMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const downloadOrderSummary = (record: TrackingRecord) => {
+    const content = [`GAILANT BEAUTY`, `Order ${record.reference}`, `Customer: ${record.clientName}`, `Status: ${record.status}`, `Date: ${record.date}`, "", ...(record.itemsList || []).map(item => `${item.quantity} × ${item.name} — ${money(item.price * item.quantity)}`), "", `Total: ${money(record.totalAmount || 0)}`].join("\n");
+    const url = URL.createObjectURL(new Blob([content], { type: "text/plain" }));
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = `${record.reference}.txt`; anchor.click(); URL.revokeObjectURL(url);
+  };
 
   const handleTrackOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanRef = orderRef.trim().toUpperCase();
     setOrderTracking(true);
     setOrderError("");
-    const live = await trackReference(cleanRef);
-    const found = live.data || MOCK_TRACKING_DATABASE[cleanRef] || null;
+    const live = await trackReference(cleanRef, orderCredential);
+    const found = live.data || null;
     if (found && found.type !== "Order") {
       setOrderRecord(null);
       setOrderError(`Reference "${cleanRef}" is a Booking record. Switch to the "Track Appointment / Service" tab.`);
@@ -748,8 +788,8 @@ function TrackPage() {
     const cleanRef = bookingRef.trim().toUpperCase();
     setBookingTracking(true);
     setBookingError("");
-    const live = await trackReference(cleanRef);
-    const found = live.data || MOCK_TRACKING_DATABASE[cleanRef] || null;
+    const live = await trackReference(cleanRef, bookingCredential);
+    const found = live.data || null;
     if (found && found.type !== "Booking") {
       setBookingRecord(null);
       setBookingError(`Reference "${cleanRef}" is an Order record. Switch to the "Track Order" tab.`);
@@ -785,18 +825,9 @@ function TrackPage() {
           type: "booking_modification"
         },
         onSuccess: async (paymentRef) => {
-          const updatePayload = {
-            appointment_date: newDate,
-            appointment_time: newTime,
-            status: "rescheduled",
-            rescheduled_at: new Date().toISOString(),
-            modification_payment_ref: paymentRef
-          };
-
-          if (bookingRecord.reference) {
-            await updateRecord("bookings", bookingRecord.reference, updatePayload);
-            patchLocalRecord("bookings", bookingRecord.reference, updatePayload);
-          }
+          const response = await fetch("/api/payments/complete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "reschedule", paymentMethod: "paystack", paymentReference: paymentRef, amount: modFeeGHS, reference: bookingRecord.reference, newDate, newTime }) });
+          const result = await response.json() as { error?: string };
+          if (!response.ok) { setPayingPaystack(false); setModifyMessage({ type: "error", text: result.error || "Payment verification failed." }); return; }
 
           setBookingRecord(prev => prev ? {
             ...prev,
@@ -891,14 +922,14 @@ function TrackPage() {
             {/* Form body */}
             <div className="track-form-card-body">
               {activeTab === "orders" ? (
-                <form onSubmit={handleTrackOrder} className="track-form-slay">
+                <form onSubmit={handleTrackOrder} className="track-form-gailant">
                   <div className="track-field-group">
                     <label className="track-field-label">ORDER ID</label>
                     <input
                       required
                       value={orderRef}
                       onChange={(e) => setOrderRef(e.target.value)}
-                      placeholder="e.g. GB-2026-002"
+                      placeholder="GB-O-…"
                       className="track-field-input"
                     />
                   </div>
@@ -923,14 +954,14 @@ function TrackPage() {
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleTrackBooking} className="track-form-slay">
+                <form onSubmit={handleTrackBooking} className="track-form-gailant">
                   <div className="track-field-group">
                     <label className="track-field-label">BOOKING REFERENCE</label>
                     <input
                       required
                       value={bookingRef}
                       onChange={(e) => setBookingRef(e.target.value)}
-                      placeholder="e.g. GB-2026-001"
+                      placeholder="GB-B-…"
                       className="track-field-input"
                     />
                   </div>
@@ -984,7 +1015,7 @@ function TrackPage() {
                   <div><span>Status</span><strong className={`badge-status ${orderRecord.status.toLowerCase().replace(/\s+/g, '-')}`}>{orderRecord.status}</strong></div>
                   <div><span>Est. Delivery</span><strong>{orderRecord.orderDeliveredDate || "Pending dispatch"}</strong></div>
                   <div><span>Items</span><strong>{orderRecord.itemsList?.length || 1}</strong></div>
-                  <button className="invoice-btn" onClick={() => alert("Invoice download starting...")} title="Download Invoice">
+                  <button className="invoice-btn" onClick={() => downloadOrderSummary(orderRecord)} title="Download order summary">
                     <Download size={14} /> Invoice
                   </button>
                 </div>
@@ -1049,7 +1080,7 @@ function TrackPage() {
             <div className="track-not-found">
               <Package size={36} />
               <h3>We couldn&apos;t find an order with those details</h3>
-              <p>Please double-check your Order ID (e.g. <strong>GB-2026-002</strong>) and try again. If you continue to have trouble, our studio team is here on WhatsApp.</p>
+              <p>Please double-check the order reference from your receipt and try again. If you continue to have trouble, our studio team is here on WhatsApp.</p>
               <button className="pill light" onClick={() => { setOrderSearched(false); setOrderRef(""); }}>Try another Order ID</button>
             </div>
           )}
@@ -1112,7 +1143,7 @@ function TrackPage() {
             <div className="track-not-found">
               <Calendar size={36} />
               <h3>We couldn&apos;t find a booking with those details</h3>
-              <p>Please double-check your Booking Reference (e.g. <strong>GB-2026-001</strong>) and try again.</p>
+              <p>Please double-check the booking reference from your confirmation and try again.</p>
               <button className="pill light" onClick={() => { setBookingSearched(false); setBookingRef(""); }}>Try another Reference</button>
             </div>
           )}
@@ -1152,15 +1183,15 @@ function TrackPage() {
 }
 
 function PoliciesPage() {
-  const [reviews, setReviews] = useState(TESTIMONIALS);
   const [newReview, setNewReview] = useState({ name: "", service: "", quote: "", rating: 5 });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting,setSubmitting]=useState(false); const [reviewError,setReviewError]=useState("");
   const [activeTab, setActiveTab] = useState<"policies" | "faqs" | "review">("policies");
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newReview.name && newReview.quote) {
-      setReviews([{ quote: newReview.quote, name: newReview.name, service: newReview.service || "Client Review", rating: newReview.rating || 5 }, ...reviews]);
+      setSubmitting(true);setReviewError(""); const result=await insertRecord("testimonials",{customer_name:newReview.name,service_name:newReview.service||null,quote:newReview.quote,rating:newReview.rating,published:false,verified:false});setSubmitting(false);if(result.error){setReviewError(result.error);return;}
       setSubmitted(true);
       setNewReview({ name: "", service: "", quote: "", rating: 5 });
     }
@@ -1255,7 +1286,7 @@ function PoliciesPage() {
                         onClick={() => setNewReview({ ...newReview, rating: num })}
                         aria-label={`${num} star${num > 1 ? "s" : ""}`}
                       >
-                        ★
+                        <Star size={24} fill={newReview.rating >= num ? "currentColor" : "none"} aria-hidden="true" />
                       </button>
                     ))}
                     <span className="star-count-label">{newReview.rating}/5</span>
@@ -1273,8 +1304,9 @@ function PoliciesPage() {
                   <label className="track-field-label" style={{ padding: 0, background: "transparent" }}>YOUR REVIEW *</label>
                   <textarea required placeholder="Describe your experience..." value={newReview.quote} onChange={e => setNewReview({ ...newReview, quote: e.target.value })} className="track-field-input" style={{ border: "1px solid #d9d8d4", background: "#fff", height: 110, padding: "12px 16px" }} />
                 </div>
+                {reviewError&&<p className="form-error" role="alert">{reviewError}</p>}
                 <div style={{ display: "flex", justifyContent: "center" }}>
-                  <button className="pill dark" type="submit">Submit Review <ArrowRight size={16} /></button>
+                  <button className="pill dark" type="submit" disabled={submitting}>{submitting?"Submitting…":"Submit Review"} <ArrowRight size={16} /></button>
                 </div>
               </form>
             )}
@@ -1304,6 +1336,7 @@ function PoliciesPage() {
 function CartDrawer({ cart, close, update, complete, navigate }: { cart: CartLine[]; close: () => void; update: (id: string, n: number) => void; complete: (message: string) => void; navigate: (v: View) => void }) {
   const [step, setStep] = useState<"bag" | "checkout">("bag");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [countryCode] = useState("+233");
   const [form, setForm] = useState({
     name: "",
@@ -1322,24 +1355,21 @@ function CartDrawer({ cart, close, update, complete, navigate }: { cart: CartLin
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setLoading(true);
+    setLoading(true); setError("");
     const fullPhone = `${countryCode} ${form.phone.trim()}`;
     const fullAddress = `${form.street}${form.unit ? `, ${form.unit}` : ""}, ${form.city}, ${form.country}${form.postalCode ? ` (${form.postalCode})` : ""}`;
 
-    const { error } = await insertRecord("orders", {
-      name: form.name,
-      phone: fullPhone,
-      email: form.email,
-      address: fullAddress,
-      notes: form.notes,
-      items: cart,
-      total_amount: subtotal,
-      status: "pending_payment"
-    });
-
-    setLoading(false);
-    if (error) return alert(error);
-    complete(`Thank you, ${form.name.split(" ")[0] || "queen"}. Your order request is confirmed.`);
+    try {
+      if (!form.email.trim()) throw new Error("Enter an email address to continue to secure payment.");
+      await openPaystackPayment({ email: form.email.trim(), amountGHS: subtotal, metadata: { source: "storefront_order" }, onSuccess: async paymentReference => {
+        try {
+          const response = await fetch("/api/payments/complete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "order", paymentMethod: "paystack", paymentReference, amount: subtotal, customer: { name: form.name, phone: fullPhone, email: form.email, address: fullAddress }, items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, quantity: item.quantity, kind: "product" })) }) });
+          const result = await response.json() as { error?: string; receipt?: { reference?: string } };
+          if (!response.ok) throw new Error(result.error || "Payment verification failed.");
+          complete(`Payment confirmed. Order ${result.receipt?.reference || "received"} is now with the studio.`);
+        } catch (cause) { setError(cause instanceof Error ? cause.message : "Order completion failed."); setLoading(false); }
+      }, onClose: () => setLoading(false) });
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Payment could not start."); setLoading(false); }
   };
 
   return <div className="overlay" onMouseDown={close}>
@@ -1436,8 +1466,8 @@ function CartDrawer({ cart, close, update, complete, navigate }: { cart: CartLin
               </label>
             </div>
 
-            <label>EMAIL (OPT.)
-              <input type="email" value={form.email} onChange={e => change("email", e.target.value)} autoComplete="email" placeholder="you@example.com" />
+            <label>EMAIL *
+              <input required type="email" value={form.email} onChange={e => change("email", e.target.value)} autoComplete="email" placeholder="you@example.com" />
             </label>
 
             <label>ORDER NOTES (OPT.)
@@ -1452,13 +1482,14 @@ function CartDrawer({ cart, close, update, complete, navigate }: { cart: CartLin
           </div>
 
           <footer className="ref-checkout-footer">
+            {error && <p className="form-error" role="alert">{error}</p>}
             <div className="ref-footer-total-bar">
               <span>Total</span>
               <strong>{money(subtotal)}</strong>
             </div>
             <div className="ref-footer-buttons">
               <button type="button" className="ref-back-btn" onClick={() => setStep("bag")}>
-                ← BACK
+                <ArrowLeft size={15} /> BACK
               </button>
               <button type="submit" className="ref-pay-btn" disabled={loading}>
                 {loading ? "CONNECTING…" : "PAY WITH PAYSTACK"}
@@ -1473,6 +1504,7 @@ function CartDrawer({ cart, close, update, complete, navigate }: { cart: CartLin
 
 function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; close: () => void; complete: (m: string) => void }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [homeService, setHomeService] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", date: "", time: "", stylist: "", address: "", notes: "" });
 
@@ -1484,13 +1516,27 @@ function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; clos
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setLoading(true); setError("");
     const table = modal.kind === "consultation" ? "consultation_requests" : "bookings";
     const payload = modal.kind === "consultation" ? { name: form.name, phone: form.phone, email: form.email, service_id: service?.id, service_name: service?.name, notes: form.notes, status: "new" } : { name: form.name, phone: form.phone, email: form.email, service_id: service?.id, service_name: service?.name, appointment_date: form.date, appointment_time: form.time, stylist_preference: form.stylist, home_service: homeService, address: form.address, notes: form.notes, total_amount: total, deposit_amount: due, status: "pending_payment" };
-    const { error } = await insertRecord(table, payload);
-    setLoading(false);
-    if (error) return alert(error);
-    complete(modal.kind === "consultation" ? "Consultation request received. We’ll call you shortly." : `Thank you, ${form.name.split(" ")[0] || "queen"}. Your request is confirmed.`);
+    if (modal.kind === "consultation") {
+      const result = await insertRecord(table, payload);
+      setLoading(false);
+      if (result.error) { setError(result.error); return; }
+      complete("Consultation request received. We’ll call you shortly.");
+      return;
+    }
+    if (!form.email.trim()) { setLoading(false); setError("Enter an email address to continue to secure payment."); return; }
+    try {
+      await openPaystackPayment({ email: form.email.trim(), amountGHS: due, metadata: { source: "storefront_booking", service_id: service.id }, onSuccess: async paymentReference => {
+        try {
+          const response = await fetch("/api/payments/complete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "booking", paymentMethod: "paystack", paymentReference, amount: due, customer: { name: form.name, phone: form.phone, email: form.email, address: form.address }, booking: payload }) });
+          const result = await response.json() as { error?: string; receipt?: { reference?: string } };
+          if (!response.ok) throw new Error(result.error || "Payment verification failed.");
+          complete(`Payment confirmed. Booking ${result.receipt?.reference || "received"} is secured.`);
+        } catch (cause) { setError(cause instanceof Error ? cause.message : "Booking completion failed."); setLoading(false); }
+      }, onClose: () => setLoading(false) });
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Payment could not start."); setLoading(false); }
   };
 
   return (
@@ -1523,7 +1569,7 @@ function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; clos
             <label>FULL NAME<input required value={form.name} onChange={(e) => change("name", e.target.value)} placeholder="Your name" /></label>
             <label>PHONE / WHATSAPP<input required value={form.phone} onChange={(e) => change("phone", e.target.value)} placeholder="055 000 0000" /></label>
           </div>
-          <label>EMAIL<input type="email" value={form.email} onChange={(e) => change("email", e.target.value)} placeholder="you@example.com" /></label>
+          <label>EMAIL{modal.kind === "booking" ? " *" : ""}<input required={modal.kind === "booking"} type="email" value={form.email} onChange={(e) => change("email", e.target.value)} placeholder="you@example.com" /></label>
 
           {modal.kind === "booking" && (
             <>
@@ -1551,146 +1597,11 @@ function FlowModal({ modal, close, complete }: { modal: NonNullable<Modal>; clos
           )}
 
           <label>NOTES <span>OPTIONAL</span><textarea value={form.notes} onChange={(e) => change("notes", e.target.value)} placeholder="Anything we should know?" className="squared-textarea" /></label>
+          {error && <p className="form-error" role="alert">{error}</p>}
           <button className="pill dark full" disabled={loading}>{loading ? "Please wait…" : modal.kind === "consultation" ? "Send consultation request" : `Continue to Paystack • ${money(due)}`}</button>
           {modal.kind !== "consultation" && <small className="secure-note">Secure payment • Paystack • MoMo & cards accepted</small>}
         </form>
       </div>
-    </div>
-  );
-}
-
-export function AdminPage() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState("");
-  const [tab, setTab] = useState("Dashboard");
-
-  if (!loggedIn) return (
-    <section className="admin-login">
-      <div>
-        <div className="admin-brand" style={{ cursor: "default" }}>
-          <span>Gailant</span><small>BEAUTY</small>
-        </div>
-        <div className="login-card">
-          <p className="eyebrow">Staff access</p>
-          <h1>Welcome back.</h1>
-          <p>Enter your credentials to open the Gailant Beauty office.</p>
-          <form onSubmit={async (e) => { e.preventDefault(); const result = await signInAdmin(username.trim().toLowerCase(), password); if (!result.error && !result.local) { setLoggedIn(true); setLoginError(""); } else setLoginError(result.error || "Supabase authentication is not configured."); }}>
-            <label>USERNAME<input autoComplete="username" required value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Admin username" /></label>
-            <label>PASSWORD
-              <div className="password-wrap">
-                <input autoComplete="current-password" type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" />
-                <button type="button" className="eye-toggle" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? "Hide password" : "Show password"}>
-                  {showPassword
-                    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
-                    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
-                  }
-                </button>
-              </div>
-            </label>
-            {loginError && <p className="form-error">{loginError}</p>}
-            <button className="pill dark large full">Enter dashboard <ArrowRight size={17} /></button>
-          </form>
-          <Link className="back-site" href="/">← Return to main website</Link>
-        </div>
-      </div>
-      <aside><span>GB</span><p>THE GAILANT OFFICE</p></aside>
-    </section>
-  );
-
-  const tabs = ["Dashboard", "Services", "Products", "Bookings", "Consultations", "Orders", "Reviews"];
-
-  return (
-    <section className="admin-shell">
-      <aside className="admin-sidebar">
-        <div className="wordmark" style={{ cursor: "default" }}>
-          <span>GAILANT</span><small>BEAUTY</small>
-        </div>
-        <nav>
-          {tabs.map((x) => (
-            <button key={x} onClick={() => setTab(x)} className={tab === x ? "active" : ""}>
-              {x}<span>›</span>
-            </button>
-          ))}
-        </nav>
-        <button className="signout" onClick={() => setLoggedIn(false)}>Sign out</button>
-      </aside>
-      <div className="admin-main">
-        <header>
-          <div>
-            <p>GAILANT BEAUTY • ADMIN OFFICE</p>
-            <h1>{tab}</h1>
-          </div>
-          <button className="pill dark large"><Plus size={16} /> Add new entry</button>
-        </header>
-        {tab === "Dashboard" ? <Dashboard /> : <AdminTable title={tab} />}
-      </div>
-    </section>
-  );
-}
-
-function Dashboard() {
-  const stats = [["Active Bookings", "06", "Real-time appointments"], ["Pending Orders", "04", "Ready to dispatch"], ["Total Revenue", "GH₵ 8,420", "Live Paystack data"], ["Consultations", "03", "Awaiting response"]];
-  return <><div className="stat-grid">{stats.map((x) => <article key={x[0]}><span>{x[0]}</span><strong>{x[1]}</strong><small>{x[2]}</small></article>)}</div><div className="admin-panels"><section><header><h2>Today’s scheduled appointments</h2><button>View all</button></header>{["Akosua Mensah", "Mabel Ofori", "Dede Boateng"].map((x, i) => <div className="appointment" key={x}><time>{["09:00", "11:30", "14:00"][i]}</time><span><strong>{x}</strong><small>{SERVICES[i].name}</small></span><b className={i === 0 ? "confirmed" : "pending"}>{i === 0 ? "Confirmed" : "Pending"}</b></div>)}</section><section className="quick-panel"><header><h2>System Status</h2></header><div><span>Services live</span><strong>{SERVICES.length}</strong></div><div><span>Products live</span><strong>{PRODUCTS.length}</strong></div><div><span>Reviews live</span><strong>{TESTIMONIALS.length}</strong></div></section></div></>;
-}
-
-function AdminTable({ title }: { title: string }) {
-  const [searchTerm, setSearchTerm] = useState("");
-
-  let rows: [string, string, string, string][] = [];
-  if (title === "Products") {
-    rows = PRODUCTS.map((x) => [x.name, x.category, money(x.price), "Active"]);
-  } else if (title === "Services") {
-    rows = SERVICES.map((x) => [x.name, x.category, x.duration, x.consultation ? "Consultation" : "Active"]);
-  } else if (title === "Reviews") {
-    rows = TESTIMONIALS.map((x) => [x.name, x.service, `★ ${x.rating || 5}.0`, "Published"]);
-  } else if (title === "Bookings") {
-    rows = [
-      ["Abena Mansa", "Knotless Braids", "July 24, 10:00 AM", "Confirmed"],
-      ["Efya Mensah", "Signature Gel Set", "July 26, 02:00 PM", "Rescheduled"],
-      ["Akosua Addo", "Soft Glam", "July 22, 11:00 AM", "Canceled"]
-    ];
-  } else if (title === "Orders") {
-    rows = [
-      ["Kofi Owusu", "The Accra Bob", "GH₵ 950", "Guaranteed"],
-      ["Ama Serwaa", "Crown Melt Band", "GH₵ 60", "Paid"]
-    ];
-  } else {
-    rows = [
-      ["Nana Yaa", "Locs Consultation", "Needs Call", "New"],
-      ["Kwadwo Antwi", "Beauty Training", "Needs Call", "New"]
-    ];
-  }
-
-  const filtered = rows.filter(r => r[0].toLowerCase().includes(searchTerm.toLowerCase()) || r[1].toLowerCase().includes(searchTerm.toLowerCase()));
-
-  return (
-    <div className="admin-table">
-      <div className="table-tools">
-        <label>
-          <Search size={17} />
-          <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder={`Search ${title.toLowerCase()}…`} />
-        </label>
-        <button>Export CSV</button>
-      </div>
-      <div className="table-row table-head">
-        <span>Title / Name</span>
-        <span>Category / Service</span>
-        <span>Price / Time / Rating</span>
-        <span>Status</span>
-        <span></span>
-      </div>
-      {filtered.map((row, idx) => (
-        <div className="table-row" key={idx}>
-          <strong>{row[0]}</strong>
-          <span>{row[1]}</span>
-          <span>{row[2]}</span>
-          <b className={`badge-status ${row[3].toLowerCase()}`}>{row[3]}</b>
-          <button style={{ cursor: "pointer", opacity: 0.7 }}>•••</button>
-        </div>
-      ))}
     </div>
   );
 }
@@ -1718,6 +1629,7 @@ function ProductDetailPage({ product, navigate, addToCart, favorites, toggleFavo
         <div className="product-detail-content">
           <div className="product-detail-visual">
             <div className={`luxury-product-visual ${product.tone}`}>
+              <CatalogImage src={product.imageUrl} alt={product.imageAlt || product.name} width={1100} />
               <span className="luxury-product-shape">G</span>
               <span className="in-stock-badge">IN STOCK</span>
             </div>
@@ -1735,16 +1647,10 @@ function ProductDetailPage({ product, navigate, addToCart, favorites, toggleFavo
             
             <div className="product-detail-description">
               <p>{product.description}</p>
-              <ul className="product-features">
-                <li>• {product.subCategory || "Premium quality"}</li>
-                <li>• 24&quot; length</li>
-                <li>• HD Lace construction</li>
-                <li>• 100% Human Hair</li>
-                <li>• Natural looking finish</li>
-              </ul>
+              {product.benefits&&product.benefits.length>0&&<ul className="product-features">{product.benefits.map(benefit=><li key={benefit}>{benefit}</li>)}</ul>}
             </div>
             
-            <div className="product-detail-volume">Volume: 500ml</div>
+            {product.sizeLabel&&<div className="product-detail-volume">{product.sizeLabel}</div>}
             
             <div className="product-detail-quantity">
               <div className="quantity-selector">
@@ -1756,7 +1662,7 @@ function ProductDetailPage({ product, navigate, addToCart, favorites, toggleFavo
                   <Plus size={16} />
                 </button>
               </div>
-              <span className="availability">X available</span>
+              <span className="availability">{product.inventory == null?"Availability confirmed at checkout":`${product.inventory} available`}</span>
             </div>
             
             <button className="add-to-bag-button" onClick={handleAddToCart}>
