@@ -176,7 +176,7 @@ function CheckoutModal({ cart, total, onClose, onComplete }: { cart: CartLine[];
     setBusy(true); setError(""); const customerName = name.trim() || "Walk-in customer"; const customerPhone = phone.trim() || "N/A";
     try {
       const token = payment === "cash" ? (await supabase?.auth.getSession())?.data.session?.access_token : undefined;
-      const response = await fetch("/api/payments/complete", { method: "POST", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ kind: "pos", paymentMethod: payment, paymentReference, amount: total, customer: { name: customerName, phone: customerPhone, email: email.trim() || undefined }, items: cart }) });
+      const response = await fetch("/api/payments/complete", { method: "POST", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ kind: "pos", paymentMethod: payment, paymentReference, amount: total, customer: { name: customerName, phone: customerPhone, email: email.trim() || undefined }, items: cart.map(({ id, name, price, quantity, kind }) => ({ id, name, price, quantity, kind })) }) });
       const result = await response.json() as { error?: string; receipt?: { reference?: string; paidAt?: string } };
       if (!response.ok) throw new Error(result.error || "The sale could not be verified.");
       await onComplete({ reference: result.receipt?.reference || paymentReference || "POS", items: cart, total, date: result.receipt?.paidAt || new Date().toISOString(), payment: payment === "cash" ? "Cash" : "Paystack", customer: customerName });
