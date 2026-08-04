@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart3, Bell, BookOpen, CalendarDays, ChevronDown, ChevronRight, ClipboardList, Download, History, Home, ImagePlus, Lightbulb, LogOut, Menu, Minus, Package, Plus, Search, Settings, ShoppingBag, Star, Trash2, Users, WalletCards, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Bell, BookOpen, CalendarDays, ChevronDown, ChevronRight, ClipboardList, Download, History, Home, ImagePlus, Lightbulb, LogOut, Menu, Minus, Package, Plus, Search, Settings, ShoppingBag, Star, Trash2, Users, WalletCards, X } from "lucide-react";
 import { PRODUCTS, SERVICES } from "./constants";
 import { deleteRecord, fetchRecords, hasAdminSession, insertRecord, isSupabaseConfigured, recordActivity, signInAdmin, signOutAdmin, supabase, updateRecord, upsertRecord } from "./lib/supabase";
 import { deleteLocalRecords, loadCatalog, loadRecords, patchLocalRecord, saveCatalog } from "./lib/gailand-store";
@@ -54,12 +54,13 @@ export function AdminDashboard() {
   useEffect(() => { if (!loggedIn) return; const timer = window.setTimeout(() => void refresh(), 0); return () => window.clearTimeout(timer); }, [loggedIn, refresh]);
   useEffect(() => {
     if (!loggedIn || !supabase) return;
+    const client = supabase;
     let timer: number | undefined;
-    const channel = supabase.channel("admin-studio-live").on("postgres_changes", { event: "*", schema: "public" }, () => {
+    const channel = client.channel("admin-studio-live").on("postgres_changes", { event: "*", schema: "public" }, () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => void refresh(), 180);
     }).subscribe();
-    return () => { window.clearTimeout(timer); void supabase.removeChannel(channel); };
+    return () => { window.clearTimeout(timer); void client.removeChannel(channel); };
   }, [loggedIn, refresh]);
 
   if (!authReady) return <div className="adm-loading">Preparing your workspace…</div>;
@@ -80,10 +81,10 @@ export function AdminDashboard() {
       {loading && <div className="adm-page-skeleton" aria-label="Loading dashboard data"><i /><i /><i /><i /><i /></div>}
       {view === "Overview" && <Overview data={data} navigate={navigate} />}
       {view === "Bookings" && <ScheduleView rows={data.bookings || []} refresh={refresh} flash={flash} />}
-      {operationViews.filter(item => item !== "Bookings").includes(view) && <Operations view={view} rows={data[viewTable[view]!] || []} refresh={refresh} flash={flash} />}
+      {operationViews.includes(view) && view !== "Bookings" && <Operations view={view} rows={data[viewTable[view]!] || []} refresh={refresh} flash={flash} />}
       {view === "History" && <HistoryView data={data} />}
       {(["Services", "Products", "Reviews", "Staff"] as View[]).includes(view) && <DataView view={view} rows={data[viewTable[view]!] || []} refresh={refresh} flash={flash} />}
-      {view === "Clients" && <ClientsView rows={data.customers || []} orders={data.orders || []} bookings={data.bookings || []} />}
+      {view === "Clients" && <section id="admin-client-list"><a className="adm-client-mobile-back" href="#admin-client-list"><ArrowLeft /> Back to client list</a><ClientsView rows={data.customers || []} orders={data.orders || []} bookings={data.bookings || []} /></section>}
       {view === "Point of Sale" && <PointOfSale products={data.products || []} services={data.services || []} refresh={refresh} flash={flash} />}
       {view === "Insights" && <Insights data={data} />}
       {view === "Settings" && <SettingsView rows={data.business_settings || []} refresh={refresh} flash={flash} />}
@@ -167,7 +168,7 @@ function RecordEditor({ view, record, onClose, onSaved }: { view: View; record: 
 
 function PointOfSale({ products, services, refresh, flash }: { products: Row[]; services: Row[]; refresh: () => Promise<void>; flash: (s: string) => void }) {
   const [mode, setMode] = useState<"all" | "product" | "service">("all"); const [query, setQuery] = useState(""); const [cart, setCart] = useState<CartLine[]>([]); const [checkout, setCheckout] = useState(false); const [receipt, setReceipt] = useState<Receipt | null>(null);
-  const catalog = useMemo(() => [...products.map(row => ({ ...row, kind: "product" as const })), ...services.map(row => ({ ...row, kind: "service" as const }))].filter(row => (mode === "all" || row.kind === mode) && text(row.name).toLowerCase().includes(query.toLowerCase()) && (row.kind === "service" || Number(row.inventory || 0) > 0)), [products, services, mode, query]);
+  const catalog = useMemo<Array<Row & { kind: "product" | "service" }>>(() => [...products.map(row => ({ ...row, kind: "product" as const } as Row & { kind: "product" })), ...services.map(row => ({ ...row, kind: "service" as const } as Row & { kind: "service" }))].filter(row => (mode === "all" || row.kind === mode) && text(row.name).toLowerCase().includes(query.toLowerCase()) && (row.kind === "service" || Number(row.inventory || 0) > 0)), [products, services, mode, query]);
   const total = cart.reduce((sum, line) => sum + line.price * line.quantity, 0);
   const add = (row: Row & { kind: "product" | "service" }) => setCart(current => { const id = text(row.id); const key = `${row.kind}-${id}`; const existing = current.find(line => line.key === key); if (existing) return current.map(line => line.key === key ? { ...line, quantity: Math.min(line.quantity + 1, line.inventory ?? 99) } : line); return [...current, { key, id, kind: row.kind, name: text(row.name), price: Number(row.price || 0), quantity: 1, inventory: row.kind === "product" ? Number(row.inventory || 0) : undefined }]; });
   const quantity = (key: string, delta: number) => setCart(current => current.map(line => line.key === key ? { ...line, quantity: Math.max(0, Math.min(line.quantity + delta, line.inventory ?? 99)) } : line).filter(line => line.quantity > 0));
