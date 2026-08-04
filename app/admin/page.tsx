@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
-import { GailandAdmin } from "../AdminDashboard";
+import { AdminDashboard } from "../AdminDashboard";
+import "./admin.css";
 
-export const metadata: Metadata = {
-  title: "Staff Dashboard | Gailant Beauty",
-  description: "Private staff access for Gailant Beauty.",
-  robots: { index: false, follow: false },
-};
+export const metadata: Metadata = { title: "Admin | Gailant Beauty", robots: { index: false, follow: false } };
 
-export default function AdminRoute() {
-  return <GailandAdmin />;
-}
+export default function AdminPage() { return <AdminDashboard />; }

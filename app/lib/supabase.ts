@@ -15,6 +15,11 @@ function message(error: unknown) {
 
 export async function insertRecord(table: string, payload: Record<string, unknown>) {
   if (!supabase) return { data: createLocalRecord(table, payload), error: null, local: true };
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session && ["orders", "bookings", "consultation_requests"].includes(table)) {
+    const { error } = await supabase.from(table).insert(payload);
+    return { data: error ? null : payload, error: error ? message(error) : null, local: false };
+  }
   const { data, error } = await supabase.from(table).insert(payload).select().single();
   return { data, error: error ? message(error) : null, local: false };
 }
@@ -43,6 +48,13 @@ export async function upsertRecord(table: string, payload: Record<string, unknow
   return { data, error: error ? message(error) : null, local: false };
 }
 
+export async function recordActivity(action: string, entityType: string, entityId?: string, metadata: Record<string, unknown> = {}) {
+  if (!supabase) return { error: null };
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase.from("activity_log").insert({ admin_user_id: user?.id || null, action, entity_type: entityType, entity_id: entityId || null, metadata });
+  return { error: error ? message(error) : null };
+}
+
 export async function signInAdmin(email: string, password: string) {
   if (!supabase) return { error: null, local: true };
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -61,6 +73,12 @@ export async function signInAdmin(email: string, password: string) {
 }
 
 export async function signOutAdmin() { if (supabase) await supabase.auth.signOut(); }
+export async function updateAdminPassword(password: string) {
+  if (!supabase) return { error: "Supabase authentication is required." };
+  if (password.length < 12) return { error: "Use at least 12 characters for the new password." };
+  const { error } = await supabase.auth.updateUser({ password });
+  return { error: error ? message(error) : null };
+}
 export async function hasAdminSession() {
   if (!supabase) return false;
   const { data: { session } } = await supabase.auth.getSession();
@@ -104,11 +122,13 @@ function mapTrackingRow(row: Record<string, unknown>): LiveTrackingRecord {
   };
 }
 
-export async function trackReference(reference: string): Promise<{ data: LiveTrackingRecord | null; error: string | null }> {
+export async function trackReference(reference: string, credential: string): Promise<{ data: LiveTrackingRecord | null; error: string | null }> {
   if (!supabase) return { data: null, error: null };
   const cleanReference = reference.trim().toUpperCase();
+  const cleanCredential = credential.trim().toLowerCase();
+  if (!cleanReference || !cleanCredential) return { data: null, error: "Enter the reference and the email address or phone number used at checkout." };
 
-  const rpc = await supabase.rpc("track_gailand_reference", { lookup_reference: cleanReference });
+  const rpc = await supabase.rpc("track_gailand_reference", { lookup_reference: cleanReference, lookup_credential: cleanCredential });
   if (!rpc.error && Array.isArray(rpc.data) && rpc.data[0]) {
     return { data: mapTrackingRow(rpc.data[0] as Record<string, unknown>), error: null };
   }
@@ -124,7 +144,7 @@ export async function trackReference(reference: string): Promise<{ data: LiveTra
   if (isOrder) {
     const direct = await supabase
       .from("orders")
-      .select("reference,name,items,status,payment_status,estimated_delivery_at,admin_note")
+      .select("reference,name,phone,email,items,status,payment_status,estimated_delivery_at,admin_note")
       .eq("reference", cleanReference)
       .maybeSingle();
     if (direct.error) return { data: null, error: message(direct.error) };
@@ -132,7 +152,7 @@ export async function trackReference(reference: string): Promise<{ data: LiveTra
   } else {
     const direct = await supabase
       .from("bookings")
-      .select("reference,name,service_name,status,payment_status,appointment_date,appointment_time,admin_note")
+      .select("reference,name,phone,email,service_name,status,payment_status,appointment_date,appointment_time,admin_note")
       .eq("reference", cleanReference)
       .maybeSingle();
     if (direct.error) return { data: null, error: message(direct.error) };
@@ -141,6 +161,8 @@ export async function trackReference(reference: string): Promise<{ data: LiveTra
   if (!directData) return { data: null, error: null };
 
   const row = directData as Record<string, unknown>;
+  const credentialMatches = [row.email, row.phone].some(value => String(value || "").trim().toLowerCase().replace(/\s+/g, "") === cleanCredential.replace(/\s+/g, ""));
+  if (!credentialMatches) return { data: null, error: null };
   if (isOrder) {
     const items = Array.isArray(row.items) ? row.items as Record<string, unknown>[] : [];
     row.record_type = "Order";
