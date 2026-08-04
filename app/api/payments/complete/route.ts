@@ -1,4 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import { paymentCompletionSchema } from "../../../lib/validation";
+import { logServerError } from "../../../lib/server-logging";
+import { enforceRateLimit, rateLimitResponse } from "../../../lib/rate-limit";
 
 type Line = { id: string; name: string; price: number; quantity: number; kind?: "product" | "service" };
 type RequestBody = {
@@ -17,12 +20,19 @@ type RequestBody = {
 const json = (body: Record<string, unknown>, status = 200) => Response.json(body, { status });
 const cleanText = (value: unknown, max = 500) => String(value || "").trim().slice(0, max);
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
+  let raw: unknown;
+  try { raw = await request.json(); } catch { return json({ error: "Invalid request." }, 400); }
+  const parsed = paymentCompletionSchema.safeParse(raw);
+  if (!parsed.success) return json({ error: "Invalid request." }, 400);
+  const body = parsed.data as RequestBody;
+  if (body.paymentMethod !== "cash" && (body.kind === "booking" || body.kind === "order")) {
+    const limited = await enforceRateLimit(request, body.kind === "booking" ? "public-booking" : "public-order");
+    if (!limited.success) return rateLimitResponse(limited);
+  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceKey) return json({ error: "Payment completion is not configured." }, 503);
-  let body: RequestBody;
-  try { body = await request.json() as RequestBody; } catch { return json({ error: "Invalid request." }, 400); }
   if (!Number.isFinite(body.amount) || body.amount < 0) return json({ error: "Invalid payment amount." }, 400);
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -130,4 +140,9 @@ export async function POST(request: Request) {
   }
   await admin.from("activity_log").insert(created.map(record => ({ action: `${record.type}.pos_completed`, entity_type: record.type, entity_id: record.id, metadata: { reference: record.reference, payment_reference: verifiedReference } })));
   return json({ data: created, receipt: { reference: created[0]?.reference || verifiedReference, paymentReference: verifiedReference, amount: body.amount, paidAt: now } });
+}
+
+export async function POST(request: Request) {
+  try { return await handlePost(request); }
+  catch (error) { logServerError("/api/payments/complete", error); return json({ error: "Payment completion failed." }, 500); }
 }

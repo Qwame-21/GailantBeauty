@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { deleteImageSchema } from "../../../lib/validation";
+import { logServerError } from "../../../lib/server-logging";
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
+  let raw: unknown;
+  try { raw = await request.json(); } catch { return Response.json({ error: "Invalid request." }, { status: 400 }); }
+  const parsed = deleteImageSchema.safeParse(raw);
+  if (!parsed.success) return Response.json({ error: "Invalid request." }, { status: 400 });
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -15,8 +21,7 @@ export async function POST(request: Request) {
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   if (!apiKey || !apiSecret || !cloudName) return Response.json({ error: "Cloudinary cleanup is not configured." }, { status: 503 });
-  const { public_id: publicId } = await request.json() as { public_id?: string };
-  if (!publicId) return Response.json({ error: "A valid public_id is required." }, { status: 400 });
+  const publicId = parsed.data.public_id;
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = createHash("sha1").update(`invalidate=true&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`).digest("hex");
   const body = new URLSearchParams({ public_id: publicId, timestamp: String(timestamp), invalidate: "true", api_key: apiKey, signature });
@@ -24,4 +29,9 @@ export async function POST(request: Request) {
   const result = await response.json() as { result?: string; error?: { message?: string } };
   if (!response.ok || result.error) return Response.json({ error: result.error?.message || "Cloudinary cleanup failed." }, { status: 502 });
   return Response.json({ result: result.result || "ok" });
+}
+
+export async function POST(request: Request) {
+  try { return await handlePost(request); }
+  catch (error) { logServerError("/api/admin/delete-image", error); return Response.json({ error: "Image deletion failed." }, { status: 500 }); }
 }

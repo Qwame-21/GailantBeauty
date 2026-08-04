@@ -1,10 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 import { createLocalRecord } from "./gailand-store";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = url && anon ? createClient(url, anon) : null;
+export const supabase = url && anon ? createBrowserClient(url, anon) : null;
 export const isSupabaseConfigured = Boolean(supabase);
 
 export type DataResult<T> = { data: T | null; error: string | null; local: boolean };
@@ -16,9 +16,11 @@ function message(error: unknown) {
 export async function insertRecord(table: string, payload: Record<string, unknown>) {
   if (!supabase) return { data: createLocalRecord(table, payload), error: null, local: true };
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session && ["orders", "bookings", "consultation_requests"].includes(table)) {
-    const { error } = await supabase.from(table).insert(payload);
-    return { data: error ? null : payload, error: error ? message(error) : null, local: false };
+  if (!session && ["orders", "bookings", "consultation_requests", "testimonials"].includes(table)) {
+    const kind = table === "consultation_requests" ? "consultation" : table === "testimonials" ? "testimonial" : table.slice(0, -1);
+    const response = await fetch("/api/public/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, data: payload }) });
+    const result = await response.json() as { data?: Record<string, unknown>; error?: string };
+    return { data: response.ok ? result.data || payload : null, error: response.ok ? null : result.error || "The submission could not be saved.", local: false };
   }
   const { data, error } = await supabase.from(table).insert(payload).select().single();
   return { data, error: error ? message(error) : null, local: false };
@@ -57,18 +59,11 @@ export async function recordActivity(action: string, entityType: string, entityI
 
 export async function signInAdmin(email: string, password: string) {
   if (!supabase) return { error: null, local: true };
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user) return { error: error ? message(error) : "Unable to authenticate.", local: false };
-  const { data: admin, error: adminError } = await supabase
-    .from("admin_users")
-    .select("user_id")
-    .eq("user_id", data.user.id)
-    .eq("active", true)
-    .maybeSingle();
-  if (adminError || !admin) {
-    await supabase.auth.signOut();
-    return { error: adminError ? message(adminError) : "This account does not have admin access.", local: false };
-  }
+  const response = await fetch("/api/auth/admin-login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password }) });
+  const result = await response.json() as { access_token?: string; refresh_token?: string; error?: string };
+  if (!response.ok || !result.access_token || !result.refresh_token) return { error: result.error || "Unable to authenticate.", local: false };
+  const session = await supabase.auth.setSession({ access_token: result.access_token, refresh_token: result.refresh_token });
+  if (session.error) return { error: "Unable to establish the admin session.", local: false };
   return { error: null, local: false };
 }
 
@@ -128,53 +123,8 @@ export async function trackReference(reference: string, credential: string): Pro
   const cleanCredential = credential.trim().toLowerCase();
   if (!cleanReference || !cleanCredential) return { data: null, error: "Enter the reference and the email address or phone number used at checkout." };
 
-  const rpc = await supabase.rpc("track_gailand_reference", { lookup_reference: cleanReference, lookup_credential: cleanCredential });
-  if (!rpc.error && Array.isArray(rpc.data) && rpc.data[0]) {
-    return { data: mapTrackingRow(rpc.data[0] as Record<string, unknown>), error: null };
-  }
-
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    const missingFunction = rpc.error?.message?.toLowerCase().includes("function") || rpc.error?.code === "PGRST202";
-    return { data: null, error: missingFunction ? "Live tracking is awaiting its database update." : null };
-  }
-
-  const isOrder = cleanReference.startsWith("GB-O-");
-  let directData: unknown = null;
-  if (isOrder) {
-    const direct = await supabase
-      .from("orders")
-      .select("reference,name,phone,email,items,status,payment_status,estimated_delivery_at,admin_note")
-      .eq("reference", cleanReference)
-      .maybeSingle();
-    if (direct.error) return { data: null, error: message(direct.error) };
-    directData = direct.data;
-  } else {
-    const direct = await supabase
-      .from("bookings")
-      .select("reference,name,phone,email,service_name,status,payment_status,appointment_date,appointment_time,admin_note")
-      .eq("reference", cleanReference)
-      .maybeSingle();
-    if (direct.error) return { data: null, error: message(direct.error) };
-    directData = direct.data;
-  }
-  if (!directData) return { data: null, error: null };
-
-  const row = directData as Record<string, unknown>;
-  const credentialMatches = [row.email, row.phone].some(value => String(value || "").trim().toLowerCase().replace(/\s+/g, "") === cleanCredential.replace(/\s+/g, ""));
-  if (!credentialMatches) return { data: null, error: null };
-  if (isOrder) {
-    const items = Array.isArray(row.items) ? row.items as Record<string, unknown>[] : [];
-    row.record_type = "Order";
-    row.item = String(items[0]?.name || "Gailant Beauty order");
-    row.scheduled_detail = row.estimated_delivery_at
-      ? new Date(String(row.estimated_delivery_at)).toLocaleString()
-      : "Delivery timing pending";
-  } else {
-    row.record_type = "Booking";
-    row.item = row.service_name;
-    row.scheduled_detail = `${row.appointment_date || "Date pending"}${row.appointment_time ? ` at ${row.appointment_time}` : ""}`;
-  }
-  row.client_name = row.name;
-  return { data: mapTrackingRow(row), error: null };
+  const response = await fetch("/api/public/track", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reference: cleanReference, credential: cleanCredential }) });
+  const result = await response.json() as { data?: Record<string, unknown> | null; error?: string };
+  if (!response.ok) return { data: null, error: result.error || "Tracking could not be completed." };
+  return { data: result.data ? mapTrackingRow(result.data) : null, error: null };
 }

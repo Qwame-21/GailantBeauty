@@ -2,10 +2,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { ArrowLeft, BarChart3, Bell, BookOpen, CalendarDays, ChevronDown, ChevronRight, ClipboardList, Download, History, Home, ImagePlus, Lightbulb, LogOut, Menu, Minus, Package, Plus, Search, Settings, ShoppingBag, Star, Trash2, Users, WalletCards, X } from "lucide-react";
 import { PRODUCTS, SERVICES } from "./constants";
-import { deleteRecord, fetchRecords, hasAdminSession, insertRecord, isSupabaseConfigured, recordActivity, signInAdmin, signOutAdmin, supabase, updateRecord, upsertRecord } from "./lib/supabase";
+import { deleteRecord, fetchRecords, hasAdminSession, insertRecord, isSupabaseConfigured, recordActivity, signOutAdmin, supabase, updateRecord, upsertRecord } from "./lib/supabase";
+import { AdminLogin } from "./AdminLogin";
 import { deleteLocalRecords, loadCatalog, loadRecords, patchLocalRecord, saveCatalog } from "./lib/gailand-store";
 import { openPaystackPayment } from "./lib/paystack";
 import { cleanupImages, uploadImage } from "./lib/cloudinary";
@@ -64,7 +64,7 @@ export function AdminDashboard() {
   }, [loggedIn, refresh]);
 
   if (!authReady) return <div className="adm-loading">Preparing your workspace…</div>;
-  if (!loggedIn) return <Login onSuccess={() => setLoggedIn(true)} />;
+  if (!loggedIn) return <AdminLogin onSuccess={() => setLoggedIn(true)} />;
   const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 3500); };
   const navigate = (next: View) => { setView(next); setDrawer(false); };
 
@@ -101,11 +101,6 @@ function AdminHeader({ view, loading, activities, openMenu, navigate }: { view: 
   const destination=(activity:Row):View=>{const entity=text(activity.entity_type).toLowerCase();return entity.includes("booking")?"Bookings":entity.includes("consultation")?"Consultations":entity.includes("order")||entity.includes("payment")?"Orders":entity.includes("product")?"Products":entity.includes("service")?"Services":entity.includes("staff")?"Staff":entity.includes("testimonial")||entity.includes("review")?"Reviews":"History";};
   const [identity,setIdentity]=useState({name:"Admin",email:""}); useEffect(()=>{void supabase?.auth.getUser().then(({data})=>{const email=data.user?.email||"";const name=String(data.user?.user_metadata?.full_name||email.split("@")[0]||"Admin");setIdentity({name,email});});},[]);
   return <header className="adm-top"><button className="adm-menu" onClick={openMenu} aria-label="Open navigation"><Menu /></button><span className="adm-mobile-brand"><i /><strong>Gailant<br />Beauty</strong></span><div className="adm-page-intro"><h1>{overview ? `Good ${new Date().getHours()<12?"morning":new Date().getHours()<18?"afternoon":"evening"}, ${identity.name}` : view}</h1><p>{overview ? "Your live operating view for today." : `Manage your ${view.toLowerCase()} and salon operations.`}</p></div><div className="adm-header-actions"><button className="adm-icon-button" aria-label="Activity notifications" aria-expanded={notifications} onClick={()=>setNotifications(current=>!current)}><Bell />{visibleActivities.length>0&&<i />}</button><div className="adm-profile" aria-label="Admin profile"><span>{identity.name.slice(0,1).toUpperCase()}</span><span><strong>{identity.name}</strong><small>{identity.email||"Admin"}</small></span></div>{overview && <span className="adm-open-pill">Operations active <i /></span>}<span className="adm-live"><i /> {loading ? "Syncing" : isSupabaseConfigured ? "Live" : "Local"}</span>{notifications&&<section className="adm-notification-panel" aria-label="Recent activity"><strong>Recent activity</strong>{visibleActivities.slice(0,5).map((activity,index)=><article key={text(activity.id,String(index))}><div><b>{text(activity.action).replaceAll("."," ")}</b><small>{text(activity.entity_type)} · {dateText(activity.created_at)}</small></div><div><button onClick={()=>{navigate(destination(activity));setNotifications(false);}}>View</button><button onClick={()=>setDismissed(current=>[...current,text(activity.id)])}>Dismiss</button></div></article>)}{!visibleActivities.length&&<p>No new operational activity. New bookings, payments, and staff updates will appear here automatically.</p>}</section>}</div></header>;
-}
-
-function Login({ onSuccess }: { onSuccess: () => void }) {
-  const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
-  return <main className="adm-login"><section><div className="adm-login-brand">G</div><p className="adm-kicker">PRIVATE STUDIO</p><h1>Welcome back.</h1><p>Sign in with your Gailant Beauty administrator account.</p><form onSubmit={async event => { event.preventDefault(); setBusy(true); setError(""); const result = await signInAdmin(email.trim().toLowerCase(), password); setBusy(false); if (!result.error && (!result.local || !isSupabaseConfigured)) onSuccess(); else setError(result.error || "Unable to sign in."); }}><label>Email address<input type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} /></label><label>Password<input type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>{error && <div className="adm-error">{error}</div>}<button className="adm-primary" disabled={busy}>{busy ? "Signing in…" : "Enter admin"}</button></form><Link href="/">← Return to storefront</Link></section><aside><p>BEAUTY, CROWNED.</p><h2>Operations<br />with grace.</h2><a href="https://ayaaba.netlify.app" target="_blank" rel="noreferrer">Built by Ayaaba</a></aside></main>;
 }
 
 function Overview({ data, navigate }: { data: Record<string, Row[]>; navigate: (view: View) => void }) {

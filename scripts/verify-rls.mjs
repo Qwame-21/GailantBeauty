@@ -42,25 +42,35 @@ try {
     name: "RLS Test",
     phone: "0000000000",
     address: "Automated security test",
-    items: [],
+    items: [{ id: catalog.data[0].id, name: catalog.data[0].name, price: 1, quantity: 1, kind: "product" }],
     total_amount: 1,
     payment_status: "pending",
     status: "pending_payment",
     source: marker,
   });
-  if (inserted.error) throw new Error(`Anonymous checkout insert failed: ${inserted.error.message}`);
+  if (!inserted.error) throw new Error("Anonymous checkout bypassed the rate-limited server route.");
+  console.log("PASS anonymous users cannot bypass the rate-limited order route");
+
+  const serverInserted = await service.from("orders").insert({
+    name: "RLS Test", phone: "0000000000", address: "Automated security test",
+    items: [{ id: catalog.data[0].id, name: catalog.data[0].name, price: 1, quantity: 1, kind: "product" }],
+    total_amount: 1, payment_status: "pending", status: "pending_payment", source: marker,
+  });
+  if (serverInserted.error) throw new Error(`Server-side checkout insert failed: ${serverInserted.error.message}`);
   const created = await service.from("orders").select("id,reference").eq("source", marker).single();
   if (created.error || !created.data) throw new Error(`Inserted checkout could not be verified: ${created.error?.message}`);
   orderId = created.data.id;
   orderReference = created.data.reference;
-  console.log("PASS anonymous storefront checkout insert is allowed");
+  console.log("PASS service route can create a constraint-valid order");
 
-  const tracked = await anon.rpc("track_gailand_reference", { lookup_reference: orderReference });
-  if (tracked.error || !tracked.data?.[0]) throw new Error(`Guest tracking RPC failed: ${tracked.error?.message}`);
+  const bypassedTracking = await anon.rpc("track_gailand_reference", { lookup_reference: orderReference, lookup_credential: "0000000000" });
+  if (!bypassedTracking.error) throw new Error("Anonymous tracking bypassed the rate-limited server route.");
+  const tracked = await service.rpc("track_gailand_reference", { lookup_reference: orderReference, lookup_credential: "0000000000" });
+  if (tracked.error || !tracked.data?.[0]) throw new Error(`Server tracking RPC failed: ${tracked.error?.message}`);
   const allowed = new Set(["reference", "client_name", "record_type", "item", "status", "scheduled_detail", "admin_note"]);
   const leaked = Object.keys(tracked.data[0]).filter(key => !allowed.has(key));
   if (leaked.length) throw new Error(`Guest tracking leaked fields: ${leaked.join(", ")}`);
-  console.log("PASS guest tracking returns only its restricted projection");
+  console.log("PASS tracking is server-only and returns only its restricted projection");
 } finally {
   if (orderId) {
     const cleanup = await service.from("orders").delete().eq("id", orderId);
