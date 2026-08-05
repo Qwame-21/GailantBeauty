@@ -40,6 +40,7 @@ export function AdminDashboard() {
   const [data, setData] = useState<Record<string, Row[]>>({});
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => { hasAdminSession().then(active => { setLoggedIn(active || !isSupabaseConfigured); setAuthReady(true); }); }, []);
   const refresh = useCallback(async () => {
@@ -68,7 +69,6 @@ export function AdminDashboard() {
   const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 3500); };
   const navigate = (next: View) => { setView(next); setDrawer(false); };
 
-  const [collapsed, setCollapsed] = useState(false);
   return <div className={collapsed ? "adm-shell collapsed" : "adm-shell"}>
     <aside className={drawer ? "adm-sidebar open" : "adm-sidebar"}>
       <div className="adm-brand"><span>G</span><div><strong>Gailant Beauty</strong><small>ADMIN STUDIO</small></div><button type="button" className="adm-sidebar-toggle" onClick={() => setCollapsed(c => !c)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}><Menu /></button><button className="adm-mobile-close" onClick={() => setDrawer(false)} aria-label="Close menu"><X /></button></div>
