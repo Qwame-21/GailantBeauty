@@ -3338,9 +3338,59 @@ input, select, textarea {
   }
 }
 
-/* Premium image loading and keyboard feedback, aligned with the existing storefront palette. */
 .catalog-image{opacity:0;filter:blur(8px);transform:scale(1.015);transition:opacity 200ms ease-out,filter 200ms ease-out,transform 200ms ease-out}
 .catalog-image.is-loaded{opacity:1;filter:blur(0);transform:scale(1)}
 .pitchsyde-result-card.active{border-color:#7a3042;background:#fbf4f2;transform:translateX(2px)}
 .site-shell :where(button,a,input,select,textarea):focus-visible{outline:2px solid #7a3042;outline-offset:3px}
 @media(prefers-reduced-motion:reduce){.catalog-image{transition-duration:.01ms;transform:none}.site-shell *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+/* ─── SYSTEMATIC CIRCULAR SHAPE INTEGRITY FIX (Storefront & Global) ─── */
+.carousel-nav-btn,
+.socials a,
+.track-result>span,
+.whatsapp,
+.search-icon-btn,
+.bag-btn,
+.wishlist-icon-btn,
+.policy-section article span,
+.cart-drawer header button,
+.timeline-dot,
+.node-icon-wrapper,
+.checkmark-badge,
+.product-action-glass,
+.quickview-close,
+.ref-close-btn,
+.live-dot,
+.pitchsyde-close-btn,
+.pitchsyde-clear-btn,
+.interactive-stars button,
+.cart-count-badge,
+.star-icon-btn {
+  aspect-ratio: 1 / 1 !important;
+  flex-shrink: 0 !important;
+}
+
+/* ─── MOBILE TYPOGRAPHY & LEGIBILITY SCALE ─── */
+@media (max-width: 768px) {
+  body {
+    font-size: 15px !important;
+    line-height: 1.6 !important;
+  }
+
+  p, li, dl, dd, dt, span:not(.eyebrow):not(.badge-status):not(.cart-count-badge) {
+    font-size: max(15px, inherit);
+  }
+
+  table, tr, td, th, .adm-table-wrap table {
+    font-size: 14px !important;
+  }
+
+  input, select, textarea, button.pill, .pill, button.hero-btn-primary, button.hero-btn-secondary {
+    font-size: 16px !important;
+  }
+
+  button, .text-button, .nav-action-btn, .bag-button {
+    font-weight: 600;
+  }
+}
+

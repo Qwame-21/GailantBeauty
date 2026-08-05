@@ -1063,12 +1063,22 @@ function TrackPage() {
                 </div>
               )}
 
-              <div className="order-totals-block">
-                <div className="totals-row"><span>Subtotal</span><span>{money(orderRecord.subtotal || 0)}</span></div>
-                <div className="totals-row"><span>Delivery Fee</span><span>{money(orderRecord.deliveryFee || 50)}</span></div>
-                {Boolean(orderRecord.discount) && <div className="totals-row discount"><span>Discount</span><span>-{money(orderRecord.discount || 0)}</span></div>}
-                <div className="totals-row grand-total"><span>Total</span><strong>{money(orderRecord.totalAmount || (orderRecord.subtotal || 0) + (orderRecord.deliveryFee || 50))}</strong></div>
-              </div>
+              {(orderRecord.totalAmount != null || orderRecord.subtotal != null) && (
+                <div className="order-totals-block">
+                  {orderRecord.subtotal != null && (
+                    <div className="totals-row"><span>Subtotal</span><span>{money(orderRecord.subtotal)}</span></div>
+                  )}
+                  {orderRecord.deliveryFee != null && orderRecord.deliveryFee > 0 && (
+                    <div className="totals-row"><span>Delivery Fee</span><span>{money(orderRecord.deliveryFee)}</span></div>
+                  )}
+                  {orderRecord.discountAmount != null && orderRecord.discountAmount > 0 && (
+                    <div className="totals-row discount"><span>Discount</span><span>-{money(orderRecord.discountAmount)}</span></div>
+                  )}
+                  {orderRecord.totalAmount != null && (
+                    <div className="totals-row grand-total"><span>Total</span><strong>{money(orderRecord.totalAmount)}</strong></div>
+                  )}
+                </div>
+              )}
 
               {orderRecord.adminNote && (
                 <aside className="studio-note"><small>STUDIO UPDATE</small><p>{orderRecord.adminNote}</p></aside>

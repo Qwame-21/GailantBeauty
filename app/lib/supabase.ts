@@ -103,9 +103,18 @@ export type LiveTrackingRecord = {
   status: string;
   date: string;
   adminNote?: string;
+  // Financial fields — populated from the RPC; null means not available for this record type
+  subtotal?: number | null;
+  deliveryFee?: number | null;
+  discountAmount?: number | null;
+  totalAmount?: number | null;
+  servicePrice?: number | null;
+  depositPaid?: number | null;
 };
 
 function mapTrackingRow(row: Record<string, unknown>): LiveTrackingRecord {
+  const numOrNull = (v: unknown): number | null =>
+    v != null && v !== "" && Number.isFinite(Number(v)) ? Number(v) : null;
   return {
     reference: String(row.reference || ""),
     clientName: String(row.client_name || row.name || "Gailant client"),
@@ -114,6 +123,12 @@ function mapTrackingRow(row: Record<string, unknown>): LiveTrackingRecord {
     status: String(row.status || "Pending").replaceAll("_", " "),
     date: String(row.scheduled_detail || row.appointment_date || "Schedule pending"),
     ...(row.admin_note ? { adminNote: String(row.admin_note) } : {}),
+    subtotal: numOrNull(row.subtotal),
+    deliveryFee: numOrNull(row.delivery_fee),
+    discountAmount: numOrNull(row.discount_amount),
+    totalAmount: numOrNull(row.total_amount),
+    servicePrice: numOrNull(row.service_price),
+    depositPaid: numOrNull(row.deposit_paid),
   };
 }
 

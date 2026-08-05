@@ -90,6 +90,7 @@ export type TrackingRecord = {
   subtotal?: number;
   deliveryFee?: number;
   discount?: number;
+  discountAmount?: number;
   totalAmount?: number;
 
   // Track Booking specific fields
